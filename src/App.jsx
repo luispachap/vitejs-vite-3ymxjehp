@@ -2603,7 +2603,7 @@ function LoginScreen({ data, add, onLogin }) {
         <div className="form-group">
           <label className="form-label">{esCuenta ? "Correo de la cuenta" : role === "admin" ? "PIN administrador" : role === "dueno" ? "PIN de dirección" : role === "finanzas" ? "PIN de finanzas" : role === "encargado" ? "Tu nombre o PIN" : role === "agronomo" ? "Tu nombre o PIN" : role === "externo" ? "Tu nombre completo" : role === "trabajador" ? "Tu nombre o PIN" : "Nombre o PIN"}</label>
           <input className="inp" type={!esCuenta && (role === "admin" || role === "dueno" || role === "finanzas") ? "password" : "text"}
-            placeholder={rolesConCuenta.includes(role) ? "Tu correo o tu PIN" : role === "externo" ? "Ej: JUAN PEREZ GARCIA" : role === "trabajador" ? "Ej: Juan  ó  1111" : "Ej: Cuadrilla Norte  ó  8888"}
+            placeholder={rolesConCuenta.includes(role) ? "Tu correo o tu PIN" : role === "externo" ? "Ej: JUAN PEREZ GARCIA" : "Escribe tu PIN"}
             value={busq} onChange={e => setBusq(e.target.value)} onKeyDown={e => e.key === "Enter" && entrar()} />
           {esCuenta && (
             <input className="inp mt-2" type="password" placeholder="Contraseña"
