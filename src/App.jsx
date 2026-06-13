@@ -12045,7 +12045,10 @@ function CorridaAjo({ data, add, upd, session, onClose }) {
   const cfgCorrida = (() => { try { return JSON.parse(localStorage.getItem("agro_corrida_cfg") || "{}"); } catch { return {}; } })();
   const [cajasPorEstiba, setCajasPorEstiba] = useState(parseFloat(cfgCorrida.cajasPorEstiba) || 50);
   const [folioCorrida] = useState(`COR-${Date.now().toString().slice(-6)}`);
-  const [corridaId] = useState(`cor${Date.now()}`);
+  // ¿Hay una corrida pausada para reanudar? (la más reciente con estado "pausada")
+  const corridaPausada = (data.corridas || []).filter(c => c.estado === "pausada" && c.enCurso).sort((a, b) => (b.fecha || "").localeCompare(a.fecha || ""))[0] || null;
+  const [reanudada, setReanudada] = useState(false);
+  const [corridaId, setCorridaId] = useState(`cor${Date.now()}`);
   const [responsable, setResponsable] = useState("");
 
   // Estibas de limpio disponibles como origen
@@ -12072,6 +12075,22 @@ function CorridaAjo({ data, add, upd, session, onClose }) {
   const [tramos, setTramos] = useState([]);
   // tara pre-pesada por calibre (el pallet de cada calibre)
   const [taraCal, setTaraCal] = useState(() => Object.fromEntries(calibresNum.map(c => [c, (cfgCorrida.taraCal || {})[c] || ""])));
+
+  // Reanudar una corrida pausada: recupera los contadores y la tarima donde se quedó.
+  const reanudarCorrida = () => {
+    const ec = corridaPausada.enCurso || {};
+    setCorridaId(corridaPausada.id);
+    setContador({ ...Object.fromEntries(calibresNum.map(c => [c, 0])), ...(ec.contador || {}) });
+    setRendTramo({ ...Object.fromEntries(calibresNum.map(c => [c, 0])), ...(ec.rendTramo || {}) });
+    setContadorTramo({ ...Object.fromEntries(calibresNum.map(c => [c, 0])), ...(ec.contadorTramo || {}) });
+    setAportesPrevios(ec.aportesPrevios || {});
+    setTramos(ec.tramos || []);
+    setEstibaOrigenId(ec.estibaOrigenId || "");
+    if (ec.taraCal) setTaraCal({ ...Object.fromEntries(calibresNum.map(c => [c, ""])), ...ec.taraCal });
+    setEstibasCerradas(corridaPausada.estibas || []);
+    setResponsable(corridaPausada.responsable || "");
+    setReanudada(true);
+  };
   // estibas de calibre ya cerradas en esta corrida: {id, calibre, codigo, cajas, bruto, tara, neto}
   const [estibasCerradas, setEstibasCerradas] = useState([]);
   // calibre en proceso de cierre (muestra panel de peso)
@@ -12094,6 +12113,30 @@ function CorridaAjo({ data, add, upd, session, onClose }) {
   // tarima que se está soltando (sin perder las cajas ya contadas que aún no
   // cierran estiba: esas "viajan" como aporte previo para repartir trazabilidad).
   const tramoTieneAlgo = calibresNum.some(c => (contadorTramo[c] || 0) > 0 || (rendTramo[c] || 0) > 0);
+  // Cerrar la tarima de limpio actual SIN obligar a elegir otra: guarda su
+  // rendimiento como tramo y la deja en blanco. Migue decide si sigue o no.
+  const cerrarTarimaActual = () => {
+    if (!estibaOrigen || !tramoTieneAlgo) { setEstibaOrigenId(""); return; }
+    const resumen = calibresNum.filter(c => (rendTramo[c] || 0) > 0).map(c => `Cal.${c}: ${fmtN(rendTramo[c])}`).join(" · ") || "sin cajas";
+    if (!window.confirm(`Cerrar la tarima ${estibaOrigen.codigo}.\n\nRindió:\n${resumen}\n\nSe guardará su rendimiento. Las cajas que aún no cierran estiba seguirán contando su origen. ¿Confirmar?`)) return;
+    setTramos(t => [...t, {
+      estibaId: estibaOrigen.id, codigo: estibaOrigen.codigo,
+      porCalibre: { ...rendTramo },
+      totalCajas: calibresNum.reduce((sm, c) => sm + (rendTramo[c] || 0), 0),
+    }]);
+    setAportesPrevios(prev => {
+      const next = { ...prev };
+      calibresNum.forEach(c => {
+        const pend = contadorTramo[c] || 0;
+        if (pend > 0) next[c] = [...(next[c] || []), { id: estibaOrigen.id, codigo: estibaOrigen.codigo, cajas: pend }];
+      });
+      return next;
+    });
+    setRendTramo(Object.fromEntries(calibresNum.map(c => [c, 0])));
+    setContadorTramo(Object.fromEntries(calibresNum.map(c => [c, 0])));
+    setEstibaOrigenId(""); // queda en blanco: no obliga a poner otra
+  };
+
   const cambiarTarima = (nuevoId) => {
     if (estibaOrigen && tramoTieneAlgo) {
       const resumen = calibresNum.filter(c => (rendTramo[c] || 0) > 0).map(c => `Cal.${c}: ${fmtN(rendTramo[c])}`).join(" · ") || "sin cajas";
@@ -12120,6 +12163,47 @@ function CorridaAjo({ data, add, upd, session, onClose }) {
     }
     setEstibaOrigenId(nuevoId);
     return true;
+  };
+
+  // Guardar/actualizar el registro de la corrida. Se reconstruye desde el estado
+  // local, así el reporte del día siempre está completo aunque queden estibas
+  // de calibre a medio llenar. `extra.enCurso` guarda los contadores para reanudar.
+  const guardarCorrida = (extra = {}) => {
+    const cerradas = extra.estibas || estibasCerradas;
+    upd("corridas", {
+      id: corridaId, folio: folioCorrida, fecha: today(), cultivo,
+      estibaOrigenId: estibaOrigen ? estibaOrigen.id : "",
+      estibaOrigenCodigo: estibaOrigen ? estibaOrigen.codigo : "",
+      parcelasOrigen, responsable, cajasPorEstiba,
+      tramos,
+      tramoActual: { estibaId: estibaOrigen ? estibaOrigen.id : "", codigo: estibaOrigen ? estibaOrigen.codigo : "", porCalibre: { ...rendTramo } },
+      estibas: cerradas,
+      totalEstibas: cerradas.length,
+      totalCajas: cerradas.reduce((s, e) => s + e.cajas, 0),
+      totalNeto: cerradas.reduce((s, e) => s + e.neto, 0),
+      // Conteo en curso (para reanudar otro día). Solo se llena al terminar el día.
+      enCurso: extra.enCurso || null,
+      estado: extra.estado || "abierta",
+      registradoPor: { rol: session.role, id: session.id, nombre: session.nombre },
+    });
+  };
+
+  // Terminar la corrida del día: el reporte queda guardado HOY aunque haya
+  // calibres a medio contar; esos contadores se guardan para continuar otro día.
+  const terminarCorridaDia = () => {
+    const enProceso = calibresNum.filter(c => (contador[c] || 0) > 0);
+    const msg = enProceso.length > 0
+      ? `Hay calibres a medio contar (${enProceso.map(c => `Cal.${c}: ${fmtN(contador[c])}`).join(", ")}). Se guardarán para continuar otro día y el reporte de hoy queda registrado. ¿Terminar la corrida del día?`
+      : "¿Terminar la corrida del día? El reporte queda registrado.";
+    if (!window.confirm(msg)) return;
+    guardarCorrida({
+      estado: "pausada",
+      enCurso: {
+        contador: { ...contador }, rendTramo: { ...rendTramo }, contadorTramo: { ...contadorTramo },
+        aportesPrevios, tramos, estibaOrigenId, taraCal,
+      },
+    });
+    onClose();
   };
 
   // Iniciar el cierre de una estiba de un calibre
@@ -12176,21 +12260,7 @@ function CorridaAjo({ data, add, upd, session, onClose }) {
     const itemCerrado = { id: nueva.id, calibre: cal, codigo: nueva.codigo, cajas, bruto, tara, neto };
     const cerradasNuevo = [...estibasCerradas, itemCerrado];
     setEstibasCerradas(cerradasNuevo);
-    // Persistir/actualizar el registro de la corrida (upd inserta si no existe).
-    // Se reconstruye desde el estado local en cada cierre, así siempre está completo.
-    upd("corridas", {
-      id: corridaId, folio: folioCorrida, fecha: today(), cultivo,
-      estibaOrigenId: estibaOrigen ? estibaOrigen.id : "",
-      estibaOrigenCodigo: estibaOrigen ? estibaOrigen.codigo : "",
-      parcelasOrigen, responsable, cajasPorEstiba,
-      tramos, // rendimiento por tarima ya cerrada (cambios de tarima)
-      tramoActual: { estibaId: estibaOrigen ? estibaOrigen.id : "", codigo: estibaOrigen ? estibaOrigen.codigo : "", porCalibre: { ...rendTramo } },
-      estibas: cerradasNuevo,
-      totalEstibas: cerradasNuevo.length,
-      totalCajas: cerradasNuevo.reduce((s, e) => s + e.cajas, 0),
-      totalNeto: cerradasNuevo.reduce((s, e) => s + e.neto, 0),
-      registradoPor: { rol: session.role, id: session.id, nombre: session.nombre },
-    });
+    guardarCorrida({ estibas: cerradasNuevo });
     // Los aportes previos de este calibre ya se consumieron en esta estiba
     setAportesPrevios(prev => { const next = { ...prev }; delete next[cal]; return next; });
     // El contador del tramo actual de este calibre vuelve a cero (sus cajas ya cerraron)
@@ -12238,8 +12308,17 @@ function CorridaAjo({ data, add, upd, session, onClose }) {
       </div>
       <div className="section-pad">
         <div className="text-xs text-muted mb-3" style={{ paddingLeft: 4 }}>
-          Folio: <b>{folioCorrida}</b>. Elige la estiba de limpio de origen, ve sumando cajas por calibre, y cierra cada estiba cuando junte su tamaño.
+          Folio: <b>{reanudada ? corridaId : folioCorrida}</b>. Elige la estiba de limpio de origen, ve sumando cajas por calibre, y cierra cada estiba cuando junte su tamaño.
         </div>
+        {corridaPausada && !reanudada && estibasCerradas.length === 0 && (
+          <div className="card" style={{ background: "rgba(245,166,35,.08)", border: "1px solid rgba(245,166,35,.3)" }}>
+            <div className="text-sm font-bold" style={{ color: "var(--gold)" }}>⏸️ Hay una corrida sin terminar</div>
+            <div className="text-xs text-muted" style={{ margin: "4px 0 8px" }}>
+              Del {corridaPausada.fecha} · {(corridaPausada.estibas || []).length} estiba(s) cerrada(s){(() => { const ec = corridaPausada.enCurso || {}; const pend = calibresNum.filter(c => ((ec.contador || {})[c] || 0) > 0); return pend.length ? ` · en proceso: ${pend.map(c => `Cal.${c} ${fmtN(ec.contador[c])}`).join(", ")}` : ""; })()}
+            </div>
+            <button className="btn btn-accent btn-sm" style={{ width: "100%" }} onClick={reanudarCorrida}>▶️ Continuar esa corrida</button>
+          </div>
+        )}
 
         {/* Origen: estiba de limpio */}
         <div className="card">
@@ -12294,7 +12373,8 @@ function CorridaAjo({ data, add, upd, session, onClose }) {
             {estibaOrigen && tramoTieneAlgo && (
               <div className="text-xs mt-2" style={{ color: "var(--accent)" }}>
                 🧮 De esta tarima llevas: {calibresNum.filter(c => (rendTramo[c] || 0) > 0).map(c => `Cal.${c} ${fmtN(rendTramo[c])}`).join(" · ") || "—"} ({fmtN(calibresNum.reduce((sm, c) => sm + (rendTramo[c] || 0), 0))} cajas)
-                <div className="text-muted" style={{ marginTop: 2 }}>Para cambiar de tarima sin perder esto, elige otra en el selector de arriba.</div>
+                <div className="text-muted" style={{ marginTop: 2 }}>Para cambiar de tarima, elige otra arriba. Para dejar de correr esta tarima sin elegir otra, usa el botón:</div>
+                <button className="btn btn-outline btn-sm" style={{ marginTop: 6 }} onClick={cerrarTarimaActual}>✓ Cerrar tarima {estibaOrigen.codigo}</button>
               </div>
             )}
             {tramos.length > 0 && (
@@ -12375,6 +12455,15 @@ function CorridaAjo({ data, add, upd, session, onClose }) {
             <div className="text-xs text-muted mt-2">Cada estiba cerrada ya se sumó al inventario de ajo terminado, con su trazabilidad.</div>
           </div>
         )}
+
+        {/* Terminar la corrida del día: guarda el reporte de hoy aunque queden
+            calibres a medio contar (se continúan otro día). */}
+        <button className="btn btn-outline" style={{ width: "100%", marginTop: 14, borderColor: "var(--gold)", color: "var(--gold)" }} onClick={terminarCorridaDia}>
+          🏁 Terminar corrida del día
+        </button>
+        <div className="text-xs text-muted mt-1" style={{ textAlign: "center" }}>
+          El reporte queda guardado hoy. Si quedan cajas a medio contar, se guardan para continuar otro día.
+        </div>
       </div>
     </div>
   );
