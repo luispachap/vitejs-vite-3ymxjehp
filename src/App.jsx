@@ -12047,16 +12047,6 @@ function CorridaAjo({ data, add, upd, session, onClose }) {
   const [folioCorrida] = useState(`COR-${Date.now().toString().slice(-6)}`);
   const [corridaId] = useState(`cor${Date.now()}`);
   const [responsable, setResponsable] = useState("");
-  // Rendimiento por TARIMA (tramo): cuánto ha rendido la tarima de limpio actual,
-  // por calibre. Al cambiar de tarima se guarda su tramo sin perder el conteo.
-  const [rendTramo, setRendTramo] = useState(() => Object.fromEntries(calibresNum.map(c => [c, 0])));
-  // Cajas contadas del origen actual aún no cerradas en estiba (para repartir
-  // trazabilidad si una estiba de calibre se completa con dos tarimas).
-  const [contadorTramo, setContadorTramo] = useState(() => Object.fromEntries(calibresNum.map(c => [c, 0])));
-  // Aportes de tarimas anteriores a cajas aún no cerradas: { cal: [{id, codigo, cajas}] }
-  const [aportesPrevios, setAportesPrevios] = useState({});
-  // Tramos cerrados (rendimiento histórico de cada tarima ya vaciada en esta corrida)
-  const [tramos, setTramos] = useState([]);
 
   // Estibas de limpio disponibles como origen
   const saldoDe = (e) => (e.saldo != null ? e.saldo : e.cajas);
@@ -12071,6 +12061,15 @@ function CorridaAjo({ data, add, upd, session, onClose }) {
   // contador[cal] = cajas que llevan acumuladas (aún no cerradas en estiba)
   const calibresNum = CALIBRES_AJO.filter(c => c !== "Otro");
   const [contador, setContador] = useState(() => Object.fromEntries(calibresNum.map(c => [c, 0])));
+  // Rendimiento por TARIMA (tramo): cuánto ha rendido la tarima de limpio actual,
+  // por calibre. Al cambiar de tarima se guarda su tramo sin perder el conteo.
+  const [rendTramo, setRendTramo] = useState(() => Object.fromEntries(calibresNum.map(c => [c, 0])));
+  // Cajas contadas del origen actual aún no cerradas en estiba.
+  const [contadorTramo, setContadorTramo] = useState(() => Object.fromEntries(calibresNum.map(c => [c, 0])));
+  // Aportes de tarimas anteriores a cajas aún no cerradas: { cal: [{id, codigo, cajas}] }
+  const [aportesPrevios, setAportesPrevios] = useState({});
+  // Tramos cerrados (rendimiento histórico de cada tarima ya vaciada en esta corrida)
+  const [tramos, setTramos] = useState([]);
   // tara pre-pesada por calibre (el pallet de cada calibre)
   const [taraCal, setTaraCal] = useState(() => Object.fromEntries(calibresNum.map(c => [c, (cfgCorrida.taraCal || {})[c] || ""])));
   // estibas de calibre ya cerradas en esta corrida: {id, calibre, codigo, cajas, bruto, tara, neto}
