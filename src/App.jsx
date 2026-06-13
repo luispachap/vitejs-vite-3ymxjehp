@@ -347,98 +347,31 @@ const INITIAL = {
     { id: "t_e09", nombre: "JOSE MANUEL REYES AYALA (MEÑO)",    sueldo_dia: 683, categoria: "jornalero", pin: "0909", codigoNomina: "E09" },
     { id: "t_e10", nombre: "RODRIGO GONZALEZ RODRIGUEZ (RIGO)", sueldo_dia: 683, categoria: "jornalero", pin: "1010", codigoNomina: "E10" },
   ],
-  cuadrillas: [
-    { id: "cq1", nombre: "Cuadrilla Norte", responsable: "Roberto Salinas", miembros: 12, flete_dia: 800, pin: "8888" },
-    { id: "cq2", nombre: "Cuadrilla López", responsable: "Miguel López", miembros: 8, flete_dia: 600, pin: "9999" },
-  ],
+  cuadrillas: [],
   externos: [],
-  maquinaria: [
-    { id: "m1", nombre: "Tractor 5075E", tipo: "tractor", costo_hora: 450, emoji: "🚜", cap_tanque: 150 },
-    { id: "m2", nombre: "Camioneta F-150", tipo: "vehiculo", costo_hora: 120, emoji: "🚛", cap_tanque: 80 },
-    { id: "m3", nombre: "Sembradora Kinze", tipo: "implemento", costo_hora: 350, emoji: "⚙️", cap_tanque: 0 },
-    { id: "m4", nombre: "Fumigadora Jacto", tipo: "implemento", costo_hora: 180, emoji: "💨", cap_tanque: 0 },
-    { id: "m5", nombre: "Dron DJI Agras T40", tipo: "dron", costo_hora: 600, emoji: "🚁", cap_tanque: 0 },
-  ],
-  inventario: [
-    { id: "i1", nombre: "Diesel", cat: "combustible", unidad: "L", existencia: 2000, costo_unit: 23.50, minimo: 500, emoji: "⛽" },
-    { id: "i2", nombre: "Urea 46-0-0", cat: "fertilizante", unidad: "kg", existencia: 5000, costo_unit: 8.20, minimo: 1000, emoji: "🧪" },
-    { id: "i3", nombre: "Semilla Maíz DK-7500", cat: "semilla", unidad: "kg", existencia: 800, costo_unit: 95, minimo: 100, emoji: "🌽" },
-    { id: "i4", nombre: "Glifosato 360 SL", cat: "agroquimico", unidad: "L", existencia: 150, costo_unit: 85, minimo: 30, emoji: "🧴" },
-    { id: "i5", nombre: "Aceite 15W-40", cat: "refaccion", unidad: "L", existencia: 40, costo_unit: 65, minimo: 10, emoji: "🛢️" },
-    { id: "i6", nombre: "Semilla Sorgo NK-7829", cat: "semilla", unidad: "kg", existencia: 600, costo_unit: 72, minimo: 100, emoji: "🌾" },
-    { id: "i7", nombre: "DAP Fosfato", cat: "fertilizante", unidad: "kg", existencia: 3000, costo_unit: 12.50, minimo: 500, emoji: "🧪" },
-    { id: "i8", nombre: "Filtro Aceite Tractor", cat: "refaccion", unidad: "pza", existencia: 6, costo_unit: 220, minimo: 2, emoji: "🔧" },
-    { id: "i9", nombre: "Insecticida Clorpirifos", cat: "agroquimico", unidad: "L", existencia: 80, costo_unit: 120, minimo: 20, emoji: "🧴" },
-    { id: "i10", nombre: "Gasolina", cat: "combustible", unidad: "L", existencia: 300, costo_unit: 22, minimo: 50, emoji: "⛽" },
-  ],
-  actividades: [
-    { id: "a1", fecha: "2024-11-15", parcelaId: "p1", tipo: "Preparación de suelo", registradoPor: { tipo: "planta", id: "t1" }, maquinariaId: "m1", horas_maq: 6, horas_trab: 8, insumos: [{ id: "i1", cantidad: 60, costo: 1410, nombre: "Diesel", emoji: "⛽", unidad: "L" }], costoMO: 400, costoMaq: 2700, costoInsumos: 1410, costoTotal: 4510, observaciones: "Barbecho", flete: 0, extras: {} },
-    { id: "a2", fecha: "2024-11-20", parcelaId: "p1", tipo: "Siembra", registradoPor: { tipo: "planta", id: "t1" }, maquinariaId: "m3", horas_maq: 8, horas_trab: 8, insumos: [{ id: "i3", cantidad: 50, costo: 4750, nombre: "Semilla Maíz", emoji: "🌽", unidad: "kg" }], costoMO: 400, costoMaq: 2800, costoInsumos: 4750, costoTotal: 7950, observaciones: "", flete: 0, extras: {} },
-    { id: "a3", fecha: "2024-12-05", parcelaId: "p1", tipo: "Fertilización", registradoPor: { tipo: "planta", id: "t2" }, maquinariaId: null, horas_maq: 0, horas_trab: 5, insumos: [{ id: "i2", cantidad: 200, costo: 1640, nombre: "Urea", emoji: "🧪", unidad: "kg" }], costoMO: 219, costoMaq: 0, costoInsumos: 1640, costoTotal: 1859, observaciones: "", flete: 0, extras: {} },
-  ],
+  maquinaria: [],
+  inventario: [],
+  actividades: [],
   bonificaciones: [],
-  incidencias: [
-    { id: "inc1", fecha: "2024-12-08", trabajadorId: "t2", tipo: "equipo", desc: "Bomba de fumigadora con fuga", estado: "pendiente", prioridad: "media" },
-    { id: "inc2", fecha: "2024-12-09", trabajadorId: "t1", tipo: "seguridad", desc: "Tablón roto en acceso al almacén", estado: "pendiente", prioridad: "alta" },
-  ],
-  entradas_inv: [{ id: "ei1", fecha: "2024-11-01", insumoId: "i1", cantidad: 3000, proveedor: "Pemex", costo_total: 70500, factura: "FAC-001" }],
-  cosechas: [
-    { id: "cos1", fecha: "2024-12-09", parcelaId: "p1", cultivo: "Maíz", cantidad: 18000, unidad: "kg", registros: [
-      { id: "cr1", fecha: "2024-12-09", cantidad: 18000, unidad: "kg", registradoPor: { tipo: "planta", id: "t2" }, nota: "Cosecha mecanizada" },
-    ], ajustes: [], notas: "" },
-  ],
-  ingresos: [
-    { id: "ing1", fecha: "2024-12-10", concepto: "Venta de maíz grano", categoria: "venta_cosecha", parcelaId: "p1", cultivo: "Maíz", monto: 185000, cantidad: 32, unidad: "ton", cliente: "Granos del Norte SA", metodo: "transferencia" },
-  ],
-  egresos: [
-    { id: "eg1", fecha: "2024-11-05", concepto: "Pago de electricidad - bomba de riego", categoria: "servicios", parcelaId: null, monto: 8400, proveedor: "CFE", metodo: "transferencia", ticket: null },
-    { id: "eg2", fecha: "2024-11-28", concepto: "Renta de retroexcavadora", categoria: "maquinaria", parcelaId: "p3", monto: 6500, proveedor: "Maquinaria Hermosillo", metodo: "efectivo", ticket: null },
-  ],
-  compras: [
-    { id: "co1", fecha: "2024-12-02", trabajadorId: "t1", tipoTrab: "planta", descripcion: "Aceite hidráulico y filtros", monto: 1850, proveedor: "Refaccionaria El Campo", estado: "aprobada", ticket: null, afectaInventario: false, items: [] },
-  ],
+  incidencias: [],
+  entradas_inv: [],
+  cosechas: [],
+  ingresos: [],
+  egresos: [],
+  compras: [],
   solicitudes_compra: [],
   bitacora: [],
   avances_fase: [],
-  encargados: [
-    { id: "en1", nombre: "Pedro Ramírez", pin: "5555", sueldo_dia: 650, categoria: "encargado" },
-  ],
-  tareas: [
-    { id: "ta1", fecha: "2024-12-10", asignadoA: "t2", asignadoPor: "en1", parcelaId: "p3", titulo: "Revisar sistema de riego del Lote Ajo", detalle: "Verificar que no haya fugas antes de la siembra", prioridad: "alta", estado: "pendiente" },
-  ],
-  prestamos: [
-    { id: "pr1", fecha: "2024-12-01", trabajadorId: "t2", tipoTrab: "planta", monto: 1500, motivo: "Adelanto de quincena", abonado: 500, estado: "activo", registradoPor: "en1" },
-  ],
-  cajachica: [
-    { id: "cc1", fecha: "2024-12-01", tipo: "entrada", concepto: "Fondo inicial entregado por administración", monto: 20000, registradoPor: "en1" },
-    { id: "cc2", fecha: "2024-12-02", tipo: "salida", concepto: "Compra de agua y consumibles", monto: 850, registradoPor: "en1" },
-  ],
-  proveedores: [
-    { id: "pv1", nombre: "Insumos Agrícolas del Valle", tipo: "proveedor", contacto: "Luis Fierro", telefono: "662-123-4567", notas: "Fertilizantes y agroquímicos" },
-    { id: "pv2", nombre: "Crédito Rural Banorte", tipo: "acreedor", contacto: "Ejecutivo de cuenta", telefono: "662-987-6543", notas: "Línea de crédito de avío" },
-  ],
-  creditos: [
-    { id: "cr_d1", fecha: "2024-10-15", proveedorId: "pv2", concepto: "Crédito de avío para ciclo PV2024", monto: 250000, formaPago: "dinero", cosechaComprometida: "", parcelaId: "", abonos: [{ id: "ab1", fecha: "2024-12-10", tipo: "dinero", monto: 50000, nota: "Primer abono" }], estado: "activo" },
-    { id: "cr_d2", fecha: "2024-11-01", proveedorId: "pv1", concepto: "Compra de fertilizante a crédito", monto: 68000, formaPago: "cosecha", cosechaComprometida: "Maíz", parcelaId: "p1", abonos: [], estado: "activo" },
-  ],
-  ciclos: [
-    { id: "ci1", nombre: "Otoño-Invierno 2024-2025", fechaInicio: "2024-10-01", fechaFin: "", estado: "activo", notas: "Ciclo principal de la temporada" },
-  ],
-  asistencia: [
-    { id: "as1", fecha: "2024-12-09", trabajadorId: "t1", presente: true, registradoPor: "en1" },
-    { id: "as2", fecha: "2024-12-09", trabajadorId: "t2", presente: true, registradoPor: "en1" },
-  ],
-  agronomos: [
-    { id: "ag1", nombre: "Luis Herrera", pin: "7777" },
-  ],
-  aplicaciones: [
-    { id: "ap1", fecha: "2024-12-05", parcelaId: "p1", cultivo: "Maíz", superficie: 40, tipo: "Fertirriego",
-      registradoPor: "ag1", notas: "Aplicación de etapa de crecimiento",
-      productos: [
-        { nombre: "MAP", dosis: 20, unidad: "kg/ha", total: 800, insumoId: "" },
-        { nombre: "Nitrato de calcio", dosis: 30, unidad: "kg/ha", total: 1200, insumoId: "" },
-      ] },
-  ],
+  encargados: [],
+  tareas: [],
+  prestamos: [],
+  cajachica: [],
+  proveedores: [],
+  creditos: [],
+  ciclos: [],
+  asistencia: [],
+  agronomos: [],
+  aplicaciones: [],
   envios_bodega: [],
   embarques: [],
   terminados: [],
@@ -2068,6 +2001,26 @@ function AppInner() {
       try {
         const datosNube = await leerTodo();
         if (!activo) return;
+        // SEÑAL DE RESETEO REMOTO: si admin ordenó limpiar todos los dispositivos,
+        // config_seguridad trae un resetToken. Cada dispositivo guarda el último
+        // que aplicó; si el de la nube es distinto, se limpia la copia local y se
+        // recarga (lee de nuevo desde la nube ya limpia). Una orden → todos obedecen.
+        try {
+          const cfgSegNube = (datosNube.config_seguridad || [])[0] || {};
+          const tokenNube = cfgSegNube.resetToken;
+          if (tokenNube) {
+            const tokenLocal = lsGet("agro_reset_token");
+            if (tokenLocal !== tokenNube) {
+              lsSet("agro_reset_token", tokenNube);
+              localStorage.removeItem("agro_v7");
+              localStorage.removeItem("agro_pending_v7");
+              localStorage.removeItem("agro_fallidas_v1");
+              window.location.reload();
+              return;
+            }
+          }
+        } catch { /* si falla la señal, seguir normal */ }
+
         // Merge POR REGISTRO (no por tabla) para resolver conflictos entre dispositivos.
         // Regla: por cada id, gana el registro más reciente (por timestamp _actualizado).
         // - Registros solo en la nube: se agregan.
@@ -8377,6 +8330,22 @@ function RespaldoDatos({ data, setData, onClose }) {
           <button className="btn btn-outline" onClick={() => fileRef.current && fileRef.current.click()}>📤 Elegir archivo de respaldo</button>
         </div>
 
+        <div className="card" style={{ border: "1px solid rgba(245,166,35,.35)", background: "rgba(245,166,35,.05)" }}>
+          <div className="card-title" style={{ color: "var(--gold)" }}>🔄 Recargar desde la nube</div>
+          <div className="text-xs text-muted mb-3">
+            Borra la copia guardada en <b>este dispositivo</b> y vuelve a leer todo desde la nube. Úsalo cuando este teléfono muestre datos viejos o distintos a los demás (por ejemplo, tras una limpieza en el servidor). <b>No afecta la nube ni a otros dispositivos.</b>
+          </div>
+          <button className="btn btn-outline" style={{ width: "100%", borderColor: "var(--gold)", color: "var(--gold)" }} onClick={() => {
+            if (!window.confirm("Se borrará la copia de datos de ESTE dispositivo y se recargará desde la nube. Lo que aún no se haya subido se perderá. ¿Continuar?")) return;
+            try {
+              localStorage.removeItem("agro_v7");
+              localStorage.removeItem("agro_pending_v7");
+              localStorage.removeItem("agro_fallidas_v1");
+            } catch { /* ignorar */ }
+            window.location.reload();
+          }}>🔄 Recargar este dispositivo desde la nube</button>
+        </div>
+
         {/* ZONA DE REINICIO — peligrosa, va al final y bien marcada */}
         <div className="card" style={{ border: "1px solid rgba(232,90,82,.4)", background: "rgba(232,90,82,.04)" }}>
           <div className="card-title" style={{ color: "var(--red)" }}>⚠️ Reiniciar datos</div>
@@ -13632,6 +13601,21 @@ function PanelSeguridad({ data, add, upd, session, onClose }) {
             );
           })}
           <button className="btn btn-accent" style={{ width: "100%" }} onClick={guardar}>Guardar PINs nuevos</button>
+        </div>
+        <div className="card" style={{ border: "1px solid rgba(245,166,35,.35)", background: "rgba(245,166,35,.05)" }}>
+          <div className="card-title" style={{ color: "var(--gold)" }}>🔄 Recargar TODOS los dispositivos</div>
+          <div className="text-xs text-muted mb-3">
+            Manda una orden para que <b>todos los dispositivos</b> borren su copia local y recarguen desde la nube la próxima vez que abran la app. Úsalo después de una limpieza en el servidor, para no tener que entrar a cada teléfono. No borra nada de la nube.
+          </div>
+          <button className="btn btn-outline" style={{ width: "100%", borderColor: "var(--gold)", color: "var(--gold)" }} onClick={async () => {
+            if (!window.confirm("Todos los dispositivos borrarán su copia local y recargarán desde la nube al abrir la app. Lo que cada uno no haya subido se perderá. ¿Mandar la orden?")) return;
+            const token = `r${Date.now()}`;
+            const nuevo = { ...(cfg || { id: "seguridad" }), resetToken: token, resetFecha: today(), resetPor: session.id };
+            if (cfg) upd("config_seguridad", nuevo); else add("config_seguridad", nuevo);
+            // Este mismo dispositivo ya queda al día con el token (no se recarga a sí mismo)
+            try { lsSet("agro_reset_token", token); } catch { /* ignorar */ }
+            setMsg({ tipo: "ok", txt: "Orden enviada. Cada dispositivo se recargará desde la nube la próxima vez que abra la app." });
+          }}>🔄 Mandar orden de recarga a todos</button>
         </div>
         <div className="card" style={{ background: "rgba(245,166,35,.06)", border: "1px solid rgba(245,166,35,.25)" }}>
           <div className="card-title">Recordatorios importantes</div>
