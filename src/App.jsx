@@ -1179,7 +1179,7 @@ function generarCodigoEstiba(fase, fecha) {
 // consumos = [{ id, cajas }] (cuántas cajas toma de cada estiba padre).
 // Para barbecho (nace de parcela) consumos va vacío.
 // Descuenta del saldo de cada padre; si el padre llega a 0, se marca consumida.
-function crearEstiba(data, add, upd, { fase, cajas, cultivo, parcelaId, siembraId, consumos, nota, registradoPor }) {
+function crearEstiba(data, add, upd, { fase, cajas, cultivo, parcelaId, siembraId, consumos, nota, registradoPor, cajasSinOrigen }) {
   const codigo = generarCodigoEstiba(fase, today());
   const padresIds = (consumos || []).map(c => c.id);
   // Resolver parcelas de origen: propias + heredadas de los padres (genealogía)
@@ -1204,6 +1204,7 @@ function crearEstiba(data, add, upd, { fase, cajas, cultivo, parcelaId, siembraI
     consumos: consumos || [], // detalle de cuántas cajas tomó de cada origen
     parcelasOrigen,
     estado: "activa",
+    cajasSinOrigen: parseFloat(cajasSinOrigen) || 0, // cajas sin trazabilidad hasta parcela
     fecha: today(), nota: nota || "",
     registradoPor: registradoPor || null,
     creado: new Date().toISOString(),
@@ -2799,6 +2800,7 @@ function AdminHome({ data, alertas, onNav, onLogout, pending, online }) {
 
 /* ════════════ ADMIN PARCELAS (ranchos + parcelas + fotos + ciclo fenológico) ════════════ */
 function AdminParcelas({ data, add, upd, del, onBack }) {
+  const [mapaSel, setMapaSel] = useState(null); // {lat, lng, titulo, aplicar(la, ln)}
   const [tab, setTab] = useState("lista");
   const [editId, setEditId] = useState(null);
   const FORM0 = { nombre: "", ranchoId: data.ranchos[0]?.id || "", ubicacionId: "", cultivo: "", hectareas: 10, emoji: "🌾", lat: "", lng: "", foto: null, cicloFenologico: [] };
@@ -2897,6 +2899,7 @@ function AdminParcelas({ data, add, upd, del, onBack }) {
               {UBICACIONES_CATALOG.map(u => <option key={u.codigo} value={u.codigo}>{u.nombre} ({u.clave})</option>)}
             </select>
           </div>
+          {mapaSel && <SelectorMapa lat={mapaSel.lat} lng={mapaSel.lng} titulo={mapaSel.titulo} onClose={() => setMapaSel(null)} onSelect={(la, ln) => { mapaSel.aplicar(la, ln); setMapaSel(null); }} />}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
             <div className="form-group">
               <label className="form-label">Latitud GPS</label>
@@ -2907,6 +2910,7 @@ function AdminParcelas({ data, add, upd, del, onBack }) {
               <input type="number" step="0.0001" className="inp" placeholder="-111.0400" value={editP.lng || ""} onChange={e => upd("parcelas", { ...editP, lng: parseFloat(e.target.value) || "" })} />
             </div>
           </div>
+          <button className="btn btn-outline btn-sm" style={{ width: "100%", marginBottom: 10 }} onClick={() => setMapaSel({ lat: editP.lat, lng: editP.lng, titulo: editP.nombre, aplicar: (la, ln) => upd("parcelas", { ...editP, lat: la, lng: ln }) })}>🛰️ Elegir en mapa satelital</button>
           <div className="form-group">
             <label className="form-label">Emoji</label>
             <div className="pill-group">
@@ -2983,6 +2987,7 @@ function AdminParcelas({ data, add, upd, del, onBack }) {
                 <input type="number" step="0.0001" className="inp" placeholder="-111.0400" value={form.lng} onChange={e => setForm(f => ({ ...f, lng: e.target.value }))} />
               </div>
             </div>
+            <button className="btn btn-outline btn-sm" style={{ width: "100%", marginBottom: 10 }} onClick={() => setMapaSel({ lat: form.lat, lng: form.lng, titulo: form.nombre || "Nueva parcela", aplicar: (la, ln) => setForm(f => ({ ...f, lat: la, lng: ln })) })}>🛰️ Elegir en mapa satelital</button>
             <div className="form-group">
               <label className="form-label">Emoji identificador</label>
               <div className="pill-group">
@@ -3018,6 +3023,7 @@ function AdminParcelas({ data, add, upd, del, onBack }) {
                 <input type="number" step="0.0001" className="inp" placeholder="-111.0400" value={ranchoForm.lng} onChange={e => setRanchoForm(f => ({ ...f, lng: e.target.value }))} />
               </div>
             </div>
+            <button className="btn btn-outline btn-sm" style={{ width: "100%", marginBottom: 10 }} onClick={() => setMapaSel({ lat: ranchoForm.lat, lng: ranchoForm.lng, titulo: ranchoForm.nombre || "Nuevo rancho", aplicar: (la, ln) => setRanchoForm(f => ({ ...f, lat: la, lng: ln })) })}>🛰️ Elegir en mapa satelital</button>
             <div className="text-xs text-muted mb-3" style={{ marginTop: -6 }}>Coordenadas GPS opcionales. Puedes obtenerlas en Google Maps.</div>
             <button className="btn btn-accent" onClick={() => {
               if (!ranchoForm.nombre) return;
@@ -3250,7 +3256,7 @@ function AdminEquipo({ data, add, upd, del, onBack }) {
         <div className="section-pad">
           <div className="card ab">
             <div className="card-title">Nuevo Encargado / Capataz</div>
-            {[["Nombre", "text", "nombre"], ["PIN de acceso", "text", "pin"], ["Sueldo por día", "number", "sueldo_dia"]].map(([l, t, k]) => (
+            {[["Nombre", "text", "nombre"], ["PIN de acceso", "text", "pin"], ["Sueldo por día", "number", "sueldo_dia"], ["Retención (% del pago, 0 = se paga íntegro)", "number", "retencion_pct"]].map(([l, t, k]) => (
               <div key={k} className="form-group"><label className="form-label">{l}</label><input type={t} className="inp" value={encForm[k]} onChange={e => setEncForm(f => ({ ...f, [k]: t === "number" ? (parseFloat(e.target.value) || 0) : e.target.value }))} /></div>
             ))}
             <div className="text-xs text-muted mb-3">El encargado puede asignar tareas, ver actividades del personal, registrar préstamos, manejar caja chica y reportar incidencias. También es personal con sueldo: puede registrar sus propias actividades y recibir bonificaciones.</div>
@@ -3323,7 +3329,7 @@ function AdminEquipo({ data, add, upd, del, onBack }) {
               <div className="li-right" style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2 }}>
                 <div className="li-val">{fmt(mo + bons)}</div>
                 <div style={{ display: "flex", gap: 6 }}>
-                  <button className="btn-ghost" style={{ padding: 2, fontSize: 13 }} onClick={() => setEditItem({ seccion: "trabajadores", registro: t, titulo: t.nombre, campos: [["nombre", "Nombre", "text"], ["codigoNomina", "Código nómina", "text"], ["categoria", "Categoría", "select", [{ v: "jornalero", l: "jornalero" }, { v: "tractorista", l: "tractorista" }, { v: "dronero", l: "dronero" }, { v: "maquinista", l: "maquinista" }, { v: "supervisor", l: "supervisor" }, { v: "especialista", l: "especialista" }]], ["sueldo_dia", "Sueldo por día", "number"], ["pin", "PIN de acceso", "text"]] })}>✏️</button>
+                  <button className="btn-ghost" style={{ padding: 2, fontSize: 13 }} onClick={() => setEditItem({ seccion: "trabajadores", registro: t, titulo: t.nombre, campos: [["nombre", "Nombre", "text"], ["codigoNomina", "Código nómina", "text"], ["categoria", "Categoría", "select", [{ v: "jornalero", l: "jornalero" }, { v: "tractorista", l: "tractorista" }, { v: "dronero", l: "dronero" }, { v: "maquinista", l: "maquinista" }, { v: "supervisor", l: "supervisor" }, { v: "especialista", l: "especialista" }]], ["sueldo_dia", "Sueldo por día", "number"], ["retencion_pct", "Retención (%, 0 = íntegro)", "number"], ["pin", "PIN de acceso", "text"]] })}>✏️</button>
                   <button className="btn-ghost" style={{ padding: 2, fontSize: 13, opacity: t.cabo ? 1 : 0.35 }} title="Nombrar cabo (puede pasar lista de sus compañeros)" onClick={() => {
                     if (!t.cabo && !window.confirm(`¿Nombrar cabo a ${t.nombre}? Desde su propio acceso podrá pasar lista y registrar los días de sus compañeros.`)) return;
                     upd("trabajadores", { ...t, cabo: !t.cabo });
@@ -12033,6 +12039,7 @@ function CorridaAjo({ data, add, upd, session, onClose }) {
   // --- Configuración de la corrida ---
   const [cultivo, setCultivo] = useState(cultivos[0] || "Ajo");
   const [estibaOrigenId, setEstibaOrigenId] = useState("");
+  const [nuevaLimpioCajas, setNuevaLimpioCajas] = useState(""); // tarima de limpio sin registrar
   // Configuración recordada de corridas anteriores (taras pre-pesadas y tamaño de estiba):
   // Migue no vuelve a teclear las taras de cada pallet en cada corrida.
   const cfgCorrida = (() => { try { return JSON.parse(localStorage.getItem("agro_corrida_cfg") || "{}"); } catch { return {}; } })();
@@ -12190,9 +12197,31 @@ function CorridaAjo({ data, add, upd, session, onClose }) {
                 return <option key={e.id} value={e.id}>{e.codigo} · {fmtN(saldoDe(e))} cajas disp.{parc.length ? ` (${parc.join(", ")})` : ""}</option>;
               })}
               {origenAgotado && <option value={estibaOrigen.id}>{estibaOrigen.codigo} · agotada</option>}
+              <option value="__nueva__">➕ Tarima de limpio sin registrar…</option>
             </select>
+            {estibaOrigenId === "__nueva__" && (
+              <div className="card" style={{ background: "rgba(245,166,35,.06)", border: "1px solid rgba(245,166,35,.25)", marginTop: 8, padding: 12 }}>
+                <div className="text-xs mb-2">La tarima ya está en limpio pero no se registró. Captura sus cajas para medir su rendimiento por calibre. <span style={{ color: "var(--gold)" }}>Quedará sin trazabilidad hasta parcela.</span></div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <input type="number" className="inp" placeholder="¿Cuántas cajas trae?" value={nuevaLimpioCajas} onChange={e => setNuevaLimpioCajas(e.target.value)} style={{ flex: 1 }} />
+                  <button className="btn btn-accent btn-sm" onClick={() => {
+                    const cj = parseFloat(nuevaLimpioCajas) || 0;
+                    if (cj <= 0) { alert("Captura cuántas cajas trae la tarima"); return; }
+                    const nueva = crearEstiba(data, add, upd, {
+                      fase: "limpia", cajas: cj, cultivo, consumos: [], cajasSinOrigen: cj,
+                      nota: "Registrada desde la corrida (sin barbecho previo)",
+                      registradoPor: { rol: session.role, id: session.id, nombre: session.nombre },
+                    });
+                    setEstibaOrigenId(nueva.id); setNuevaLimpioCajas("");
+                  }}>Crear y usar</button>
+                </div>
+              </div>
+            )}
             {estibaOrigen && parcelasOrigen.length > 0 && (
-              <div className="text-xs mt-1" style={{ color: "var(--accent)" }}>🔗 Origen: {parcelasOrigen.map(nombreParcela).join(", ")} · saldo {fmtN(saldoDe(estibaOrigen))} cajas</div>
+              <div className="text-xs mt-1" style={{ color: "var(--accent)" }}>🔗 Origen: {parcelasOrigen.map(nombreParcela).join(", ")} · saldo {fmtN(saldoDe(estibaOrigen))} cajas{(estibaOrigen.cajasSinOrigen || 0) > 0 ? ` · ⚠️ ${fmtN(estibaOrigen.cajasSinOrigen)} sin origen` : ""}</div>
+            )}
+            {estibaOrigen && parcelasOrigen.length === 0 && (
+              <div className="text-xs mt-1" style={{ color: "var(--gold)" }}>⚠️ {estibaOrigen.codigo} · saldo {fmtN(saldoDe(estibaOrigen))} cajas · sin trazabilidad hasta parcela</div>
             )}
             {origenAgotado && (
               <div className="text-xs mt-1" style={{ color: "var(--gold)" }}>⚠️ Esta estiba ya se agotó. Los cierres conservan su trazabilidad, pero elige la siguiente estiba para continuar.</div>
@@ -12318,7 +12347,13 @@ function Estibas({ data, add, upd, session, onClose }) {
       if (nCajas <= 0) { alert("Captura el número de cajas"); return; }
     } else {
       const consumoArr = Object.entries(consumos).filter(([, v]) => (parseFloat(v) || 0) > 0);
-      if (consumoArr.length === 0) { alert("Elige de qué estiba(s) viene y cuántas cajas tomas"); return; }
+      // Sin origen registrado: se permite (el ajo ya puede estar en limpio sin
+      // barbecho capturado), pero con aviso claro de que quedará huérfana.
+      if (consumoArr.length === 0) {
+        if (nCajas <= 0) { alert("Captura el número de cajas de la estiba"); return; }
+        const seguir = window.confirm(`Esta estiba se registrará SIN estiba de origen: no tendrá trazabilidad hasta parcela (quedará huérfana). ¿Continuar?`);
+        if (!seguir) return;
+      }
       // Validar que no se tomen más cajas de las disponibles
       for (const [id, v] of consumoArr) {
         const e = estibas.find(x => x.id === id);
@@ -12333,10 +12368,18 @@ function Estibas({ data, add, upd, session, onClose }) {
       .map(([id, v]) => ({ id, cajas: parseFloat(v) || 0 }));
     // Si es fase de origen (no barbecho) y no se capturó "cajas" de la nueva, usar el total consumido
     const cajasNueva = fase === "barbecho" ? nCajas : (nCajas > 0 ? nCajas : totalConsumido);
+    // Herencia PARCIAL: tomó cajas de estibas con origen pero se completó con
+    // cajas sin origen registrado — se avisa y queda anotado en la estiba.
+    const totConsumido = consumoArr.reduce((sm, c) => sm + c.cajas, 0);
+    const sinOrigen = fase === "barbecho" ? 0 : Math.max(0, cajasNueva - totConsumido);
+    if (sinOrigen > 0 && totConsumido > 0) {
+      const seguir = window.confirm(`De las ${fmtN(cajasNueva)} cajas, ${fmtN(totConsumido)} vienen de estibas con origen y ${fmtN(sinOrigen)} NO tienen origen registrado. La etiqueta y el rastreo lo indicarán. ¿Continuar?`);
+      if (!seguir) return;
+    }
     const nueva = crearEstiba(data, add, upd, {
       fase, cajas: cajasNueva, cultivo: form.cultivo,
       parcelaId: sb ? sb.parcelaId : "", siembraId: form.siembraId,
-      consumos: consumoArr, nota: form.nota,
+      consumos: consumoArr, nota: form.nota, cajasSinOrigen: sinOrigen,
       registradoPor: { rol: session.role, id: session.id, nombre: session.nombre },
     });
     setForm(F0); setConsumos({}); setCrear(false);
@@ -12357,7 +12400,8 @@ function Estibas({ data, add, upd, session, onClose }) {
             <div style={{ fontSize: 32, fontWeight: 800, letterSpacing: 2, color: "#1f3a1e", fontFamily: "monospace", margin: "10px 0" }}>{e.codigo}</div>
             <div style={{ fontSize: 15, margin: "10px 0" }}><b>{fmtN(e.cajas)} cajas</b> · {e.cultivo}</div>
             <div style={{ fontSize: 12, color: "#666" }}>Fecha: {e.fecha}</div>
-            {parcelas.length > 0 && <div style={{ fontSize: 12, color: "#666", marginTop: 6 }}>Origen: {parcelas.join(", ")}</div>}
+            {parcelas.length > 0 && <div style={{ fontSize: 12, color: "#666", marginTop: 6 }}>Origen: {parcelas.join(", ")}{(e.cajasSinOrigen || 0) > 0 ? ` · ⚠️ ${fmtN(e.cajasSinOrigen)} cajas sin origen registrado` : ""}</div>}
+            {parcelas.length === 0 && <div style={{ fontSize: 12, color: "#996b00", marginTop: 6 }}>⚠️ Sin trazabilidad de origen</div>}
           </div>
           <div className="gap-row mt-2">
             <button className="btn btn-outline" onClick={() => window.print()}>🖨️ Imprimir etiqueta</button>
@@ -12564,12 +12608,17 @@ function NominaSemanal({ data, add, upd, session, onClose }) {
     const dias = new Set(acts.map(a => a.fecha)).size;
     const prestamos = (data.prestamos || []).filter(x => x.trabajadorId === p.id && x.estado === "activo");
     const saldoPrestamo = prestamos.reduce((s, x) => s + Math.max(0, (x.monto || 0) - (x.abonado || 0)), 0);
-    const descuento = Math.min(parseFloat(desc[p.id]) || 0, saldoPrestamo, mo);
-    return { p, acts, mo, dias, saldoPrestamo, descuento, neto: mo - descuento };
+    // Retención del trabajador (porcentaje sobre lo ganado). Es COSTO de la
+    // empresa de todos modos, pero no se le entrega al trabajador.
+    const retPct = parseFloat(p.retencion_pct) || 0;
+    const retencion = Math.round(mo * retPct / 100 * 100) / 100;
+    const descuento = Math.min(parseFloat(desc[p.id]) || 0, saldoPrestamo, Math.max(0, mo - retencion));
+    return { p, acts, mo, dias, saldoPrestamo, retPct, retencion, descuento, neto: mo - retencion - descuento };
   };
 
   const renglones = personas.map(renglon).filter(r => r.mo > 0 || r.saldoPrestamo > 0);
   const totalMO = renglones.reduce((s, r) => s + r.mo, 0);
+  const totalRet = renglones.reduce((s, r) => s + r.retencion, 0);
   const totalDesc = renglones.reduce((s, r) => s + r.descuento, 0);
   const totalNeto = renglones.reduce((s, r) => s + r.neto, 0);
 
@@ -12616,6 +12665,7 @@ function NominaSemanal({ data, add, upd, session, onClose }) {
                   <th style={{ textAlign: "left", padding: "5px 6px", border: "1px solid #ddd" }}>Trabajador</th>
                   <th style={{ textAlign: "right", padding: "5px 6px", border: "1px solid #ddd" }}>Días</th>
                   <th style={{ textAlign: "right", padding: "5px 6px", border: "1px solid #ddd" }}>Ganado</th>
+                  <th style={{ textAlign: "right", padding: "5px 6px", border: "1px solid #ddd" }}>Retención</th>
                   <th style={{ textAlign: "right", padding: "5px 6px", border: "1px solid #ddd" }}>Desc. préstamo</th>
                   <th style={{ textAlign: "right", padding: "5px 6px", border: "1px solid #ddd" }}>Neto</th>
                   <th style={{ textAlign: "left", padding: "5px 6px", border: "1px solid #ddd", width: "22%" }}>Firma</th>
@@ -12627,6 +12677,7 @@ function NominaSemanal({ data, add, upd, session, onClose }) {
                     <td style={{ padding: "8px 6px", border: "1px solid #ddd" }}>{r.p.nombre}{r.p._tipo === "encargado" ? " (enc.)" : ""}</td>
                     <td style={{ textAlign: "right", padding: "8px 6px", border: "1px solid #ddd" }}>{r.dias}</td>
                     <td style={{ textAlign: "right", padding: "8px 6px", border: "1px solid #ddd" }}>{fmt(r.mo)}</td>
+                    <td style={{ textAlign: "right", padding: "8px 6px", border: "1px solid #ddd" }}>{r.retencion > 0 ? `− ${fmt(r.retencion)}` : "—"}</td>
                     <td style={{ textAlign: "right", padding: "8px 6px", border: "1px solid #ddd" }}>{r.descuento > 0 ? `− ${fmt(r.descuento)}` : "—"}</td>
                     <td style={{ textAlign: "right", padding: "8px 6px", border: "1px solid #ddd", fontWeight: 700 }}>{fmt(r.neto)}</td>
                     <td style={{ border: "1px solid #ddd" }}></td>
@@ -12637,6 +12688,7 @@ function NominaSemanal({ data, add, upd, session, onClose }) {
                 <tr style={{ background: "#f0f0e8", fontWeight: 700 }}>
                   <td colSpan="2" style={{ padding: "6px", border: "1px solid #ddd" }}>TOTAL</td>
                   <td style={{ textAlign: "right", padding: "6px", border: "1px solid #ddd" }}>{fmt(totalMO)}</td>
+                  <td style={{ textAlign: "right", padding: "6px", border: "1px solid #ddd" }}>− {fmt(totalRet)}</td>
                   <td style={{ textAlign: "right", padding: "6px", border: "1px solid #ddd" }}>− {fmt(totalDesc)}</td>
                   <td style={{ textAlign: "right", padding: "6px", border: "1px solid #ddd" }}>{fmt(totalNeto)}</td>
                   <td style={{ border: "1px solid #ddd" }}></td>
@@ -12692,6 +12744,12 @@ function NominaSemanal({ data, add, upd, session, onClose }) {
                 <div className="text-xs text-muted">ganado</div>
               </div>
             </div>
+            {r.retencion > 0 && (
+              <div className="flex-b" style={{ marginTop: 6 }}>
+                <span className="text-xs text-muted">Retención ({r.retPct}%)</span>
+                <span className="text-sm" style={{ color: "var(--gold)" }}>− {fmt(r.retencion)}</span>
+              </div>
+            )}
             {r.saldoPrestamo > 0 && (
               <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid var(--border)" }}>
                 <div className="text-xs mb-1" style={{ color: "var(--gold)" }}>💸 Debe {fmt(r.saldoPrestamo)} de préstamo{aplicados[r.p.id] ? ` · abonado hoy ${fmt(aplicados[r.p.id])}` : ""}</div>
@@ -12712,7 +12770,8 @@ function NominaSemanal({ data, add, upd, session, onClose }) {
         {renglones.length > 0 && (
           <div className="card" style={{ background: "rgba(126,200,50,.08)", border: "1px solid rgba(126,200,50,.25)" }}>
             <div className="flex-b"><span className="text-muted text-sm">Total ganado</span><span>{fmt(totalMO)}</span></div>
-            <div className="flex-b"><span className="text-muted text-sm">Total descuentos</span><span>− {fmt(totalDesc)}</span></div>
+            {totalRet > 0 && <div className="flex-b"><span className="text-muted text-sm">Total retenciones (se queda en la empresa)</span><span>− {fmt(totalRet)}</span></div>}
+            <div className="flex-b"><span className="text-muted text-sm">Total descuentos a préstamos</span><span>− {fmt(totalDesc)}</span></div>
             <div className="flex-b" style={{ marginTop: 6 }}><span className="font-bold">TOTAL A PAGAR</span><span className="font-bold text-accent" style={{ fontSize: 20 }}>{fmt(totalNeto)}</span></div>
             <button className="btn btn-accent mt-2" style={{ width: "100%" }} onClick={() => setVerImprimir(true)}>🖨️ Nómina para imprimir (con firmas)</button>
           </div>
@@ -13194,6 +13253,75 @@ function PanelSeguridad({ data, add, upd, session, onClose }) {
             2. Reparte a cada trabajador <b>su PIN personal</b> (en Personal puedes editarlos) — ya no se puede entrar solo con el nombre.<br />
             3. Para dirección, lo más seguro es entrar con <b>correo y contraseña</b> (cuenta real de Supabase) en lugar de PIN.
           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+/* ════════════ SELECTOR DE UBICACIÓN EN MAPA SATELITAL ════════════ */
+/* Usa Leaflet (cargado por CDN en index.html) con imágenes satelitales de
+   Esri World Imagery — gratis, sin llaves de API. Toca el mapa para poner
+   el pin sobre la parcela y listo. También acepta coordenadas pegadas de
+   Google Maps ("22.7709, -102.5832"). Necesita internet para ver el mapa. */
+function SelectorMapa({ lat, lng, titulo, onSelect, onClose }) {
+  const mapRef = useRef(null);
+  const [punto, setPunto] = useState(lat && lng ? { lat: parseFloat(lat), lng: parseFloat(lng) } : null);
+  const [pegado, setPegado] = useState("");
+  const puntoRef = useRef(punto);
+  puntoRef.current = punto;
+
+  useEffect(() => {
+    const L = window.L;
+    if (!L || !mapRef.current) return;
+    const inicio = puntoRef.current || { lat: 22.75, lng: -102.55 }; // Zacatecas por defecto
+    const map = L.map(mapRef.current).setView([inicio.lat, inicio.lng], puntoRef.current ? 16 : 12);
+    L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
+      maxZoom: 19, attribution: "Imágenes © Esri",
+    }).addTo(map);
+    let marker = puntoRef.current
+      ? L.circleMarker([inicio.lat, inicio.lng], { radius: 10, color: "#7ec832", fillColor: "#7ec832", fillOpacity: 0.6, weight: 3 }).addTo(map)
+      : null;
+    map.on("click", (ev) => {
+      const p = { lat: Math.round(ev.latlng.lat * 1e6) / 1e6, lng: Math.round(ev.latlng.lng * 1e6) / 1e6 };
+      setPunto(p);
+      if (marker) marker.setLatLng([p.lat, p.lng]);
+      else marker = L.circleMarker([p.lat, p.lng], { radius: 10, color: "#7ec832", fillColor: "#7ec832", fillOpacity: 0.6, weight: 3 }).addTo(map);
+    });
+    setTimeout(() => map.invalidateSize(), 150);
+    return () => map.remove();
+  }, []);
+
+  const pegarCoords = (txt) => {
+    setPegado(txt);
+    const m = String(txt).match(/(-?\d{1,3}\.\d+)[,\s]+(-?\d{1,3}\.\d+)/);
+    if (m) setPunto({ lat: parseFloat(m[1]), lng: parseFloat(m[2]) });
+  };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 9000, background: "rgba(0,0,0,.75)", display: "flex", flexDirection: "column", padding: 10 }}>
+      <div className="card" style={{ flex: 1, display: "flex", flexDirection: "column", padding: 12, margin: 0, overflow: "hidden" }}>
+        <div className="flex-b" style={{ marginBottom: 8 }}>
+          <div className="font-bold">📍 {titulo || "Ubicar en el mapa"}</div>
+          <button className="btn-ghost" onClick={onClose}>✕</button>
+        </div>
+        {!window.L ? (
+          <div className="text-sm text-muted" style={{ padding: 20, textAlign: "center" }}>
+            El mapa necesita internet para cargar la primera vez. Conéctate e inténtalo de nuevo, o pega las coordenadas abajo.
+          </div>
+        ) : (
+          <div ref={mapRef} style={{ flex: 1, borderRadius: 10, minHeight: 240 }} />
+        )}
+        <div className="text-xs text-muted" style={{ margin: "8px 0 4px" }}>
+          Toca el mapa para poner el pin sobre la parcela — o pega coordenadas de Google Maps:
+        </div>
+        <input className="inp" placeholder="Ej: 22.7709, -102.5832" value={pegado} onChange={e => pegarCoords(e.target.value)} style={{ marginBottom: 8 }} />
+        <div className="gap-row">
+          <button className="btn btn-outline" onClick={onClose}>Cancelar</button>
+          <button className="btn btn-accent" disabled={!punto} onClick={() => punto && onSelect(punto.lat, punto.lng)}>
+            {punto ? `✓ Usar ${punto.lat.toFixed(5)}, ${punto.lng.toFixed(5)}` : "Toca el mapa primero"}
+          </button>
         </div>
       </div>
     </div>
