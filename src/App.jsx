@@ -1179,7 +1179,7 @@ function generarCodigoEstiba(fase, fecha) {
 // consumos = [{ id, cajas }] (cuántas cajas toma de cada estiba padre).
 // Para barbecho (nace de parcela) consumos va vacío.
 // Descuenta del saldo de cada padre; si el padre llega a 0, se marca consumida.
-function crearEstiba(data, add, upd, { fase, cajas, cultivo, parcelaId, siembraId, consumos, nota, registradoPor, cajasSinOrigen }) {
+function crearEstiba(data, add, upd, { fase, cajas, cultivo, parcelaId, siembraId, consumos, nota, registradoPor, cajasSinOrigen, noDescontar }) {
   const codigo = generarCodigoEstiba(fase, today());
   const padresIds = (consumos || []).map(c => c.id);
   // Resolver parcelas de origen: propias + heredadas de los padres (genealogía)
@@ -1210,18 +1210,22 @@ function crearEstiba(data, add, upd, { fase, cajas, cultivo, parcelaId, siembraI
     creado: new Date().toISOString(),
   };
   add("estibas", estiba);
-  // Descontar del saldo de cada estiba padre
-  (consumos || []).forEach(c => {
-    const padre = (data.estibas || []).find(e => e.id === c.id);
-    if (!padre) return;
-    const saldoActual = padre.saldo != null ? padre.saldo : padre.cajas;
-    const nuevoSaldo = Math.max(0, saldoActual - (parseFloat(c.cajas) || 0));
-    upd("estibas", {
-      ...padre,
-      saldo: nuevoSaldo,
-      estado: nuevoSaldo <= 0 ? "consumida" : "activa",
+  // Descontar del saldo de cada estiba padre — SALVO cuando noDescontar es true
+  // (caso corrida: limpio→calibre son cajas de distinto tamaño, no 1:1; el saldo
+  // de limpio se ajusta por conteo físico al terminar el día, no por el calibre).
+  if (!noDescontar) {
+    (consumos || []).forEach(c => {
+      const padre = (data.estibas || []).find(e => e.id === c.id);
+      if (!padre) return;
+      const saldoActual = padre.saldo != null ? padre.saldo : padre.cajas;
+      const nuevoSaldo = Math.max(0, saldoActual - (parseFloat(c.cajas) || 0));
+      upd("estibas", {
+        ...padre,
+        saldo: nuevoSaldo,
+        estado: nuevoSaldo <= 0 ? "consumida" : "activa",
+      });
     });
-  });
+  }
   return estiba;
 }
 
@@ -12045,15 +12049,14 @@ function CorridaAjo({ data, add, upd, session, onClose }) {
   const cfgCorrida = (() => { try { return JSON.parse(localStorage.getItem("agro_corrida_cfg") || "{}"); } catch { return {}; } })();
   const [cajasPorEstiba, setCajasPorEstiba] = useState(parseFloat(cfgCorrida.cajasPorEstiba) || 50);
   const [folioCorrida] = useState(`COR-${Date.now().toString().slice(-6)}`);
-  // ¿Hay una corrida pausada para reanudar? (la más reciente con estado "pausada")
-  const corridaPausada = (data.corridas || []).filter(c => c.estado === "pausada" && c.enCurso).sort((a, b) => (b.fecha || "").localeCompare(a.fecha || ""))[0] || null;
-  const [reanudada, setReanudada] = useState(false);
-  const [corridaId, setCorridaId] = useState(`cor${Date.now()}`);
+  const [corridaId] = useState(`cor${Date.now()}`);
   const [responsable, setResponsable] = useState("");
 
   // Estibas de limpio disponibles como origen
   const saldoDe = (e) => (e.saldo != null ? e.saldo : e.cajas);
   const estibasLimpio = (data.estibas || []).filter(e => (e.fase === "limpia" || e.fase === "relimpia") && e.estado === "activa" && saldoDe(e) > 0 && e.cultivo === cultivo);
+  // Ordenar: las que tienen más saldo primero (las casi vacías quedan al final).
+  estibasLimpio.sort((a, b) => saldoDe(b) - saldoDe(a));
   // El origen se busca en TODAS las estibas: si se agota a media corrida, la
   // trazabilidad de los cierres siguientes no se pierde (solo se avisa).
   const estibaOrigen = (data.estibas || []).find(e => e.id === estibaOrigenId);
@@ -12076,25 +12079,14 @@ function CorridaAjo({ data, add, upd, session, onClose }) {
   // tara pre-pesada por calibre (el pallet de cada calibre)
   const [taraCal, setTaraCal] = useState(() => Object.fromEntries(calibresNum.map(c => [c, (cfgCorrida.taraCal || {})[c] || ""])));
 
-  // Reanudar una corrida pausada: recupera los contadores y la tarima donde se quedó.
-  const reanudarCorrida = () => {
-    const ec = corridaPausada.enCurso || {};
-    setCorridaId(corridaPausada.id);
-    setContador({ ...Object.fromEntries(calibresNum.map(c => [c, 0])), ...(ec.contador || {}) });
-    setRendTramo({ ...Object.fromEntries(calibresNum.map(c => [c, 0])), ...(ec.rendTramo || {}) });
-    setContadorTramo({ ...Object.fromEntries(calibresNum.map(c => [c, 0])), ...(ec.contadorTramo || {}) });
-    setAportesPrevios(ec.aportesPrevios || {});
-    setTramos(ec.tramos || []);
-    setEstibaOrigenId(ec.estibaOrigenId || "");
-    if (ec.taraCal) setTaraCal({ ...Object.fromEntries(calibresNum.map(c => [c, ""])), ...ec.taraCal });
-    setEstibasCerradas(corridaPausada.estibas || []);
-    setResponsable(corridaPausada.responsable || "");
-    setReanudada(true);
-  };
   // estibas de calibre ya cerradas en esta corrida: {id, calibre, codigo, cajas, bruto, tara, neto}
   const [estibasCerradas, setEstibasCerradas] = useState([]);
   // calibre en proceso de cierre (muestra panel de peso)
   const [cerrando, setCerrando] = useState(null); // {calibre, cajas}
+  // Modal de fin de día: pregunta cuántas cajas de LIMPIO (plástico) quedaron en
+  // cada tarima usada. El limpio y el calibre son cajas distintas (no 1:1), así
+  // que el saldo de limpio NO se deduce del contador de calibre: se cuenta físico.
+  const [finDia, setFinDia] = useState(null); // { tarimas: [{id, codigo, saldoActual}], restante: {id: ""} }
   const [pesoBruto, setPesoBruto] = useState("");
   const [etiquetaVer, setEtiquetaVer] = useState(null); // id de estiba cerrada a mostrar
   // Guardar la configuración cada vez que cambie
@@ -12167,7 +12159,7 @@ function CorridaAjo({ data, add, upd, session, onClose }) {
 
   // Guardar/actualizar el registro de la corrida. Se reconstruye desde el estado
   // local, así el reporte del día siempre está completo aunque queden estibas
-  // de calibre a medio llenar. `extra.enCurso` guarda los contadores para reanudar.
+  // de calibre a medio llenar al terminar el día (el saldo de la tarima se ajusta).
   const guardarCorrida = (extra = {}) => {
     const cerradas = extra.estibas || estibasCerradas;
     upd("corridas", {
@@ -12181,8 +12173,8 @@ function CorridaAjo({ data, add, upd, session, onClose }) {
       totalEstibas: cerradas.length,
       totalCajas: cerradas.reduce((s, e) => s + e.cajas, 0),
       totalNeto: cerradas.reduce((s, e) => s + e.neto, 0),
-      // Conteo en curso (para reanudar otro día). Solo se llena al terminar el día.
-      enCurso: extra.enCurso || null,
+      // Cajas contadas sin estiba (ya descontadas del saldo de su tarima al terminar el día).
+      cajasSueltas: extra.cajasSueltas || 0,
       estado: extra.estado || "abierta",
       registradoPor: { rol: session.role, id: session.id, nombre: session.nombre },
     });
@@ -12190,19 +12182,50 @@ function CorridaAjo({ data, add, upd, session, onClose }) {
 
   // Terminar la corrida del día: el reporte queda guardado HOY aunque haya
   // calibres a medio contar; esos contadores se guardan para continuar otro día.
+  // Abrir el cierre del día: junta las tarimas de limpio que se usaron hoy
+  // (la actual + las soltadas en cambios de tarima) para preguntar, una por una,
+  // cuántas cajas de LIMPIO quedaron físicamente (o si se vació).
   const terminarCorridaDia = () => {
-    const enProceso = calibresNum.filter(c => (contador[c] || 0) > 0);
-    const msg = enProceso.length > 0
-      ? `Hay calibres a medio contar (${enProceso.map(c => `Cal.${c}: ${fmtN(contador[c])}`).join(", ")}). Se guardarán para continuar otro día y el reporte de hoy queda registrado. ¿Terminar la corrida del día?`
-      : "¿Terminar la corrida del día? El reporte queda registrado.";
-    if (!window.confirm(msg)) return;
-    guardarCorrida({
-      estado: "pausada",
-      enCurso: {
-        contador: { ...contador }, rendTramo: { ...rendTramo }, contadorTramo: { ...contadorTramo },
-        aportesPrevios, tramos, estibaOrigenId, taraCal,
-      },
+    const idsUsadas = new Set();
+    if (estibaOrigen) idsUsadas.add(estibaOrigen.id);
+    tramos.forEach(t => t.estibaId && idsUsadas.add(t.estibaId));
+    Object.values(aportesPrevios).forEach(arr => (arr || []).forEach(ap => ap.id && idsUsadas.add(ap.id)));
+    const tarimas = [...idsUsadas].map(id => {
+      const e = (data.estibas || []).find(x => x.id === id);
+      return e ? { id, codigo: e.codigo, saldoActual: e.saldo != null ? e.saldo : e.cajas } : null;
+    }).filter(Boolean);
+    if (tarimas.length === 0) {
+      // No se usó ninguna tarima registrada: solo guardar el reporte del día.
+      if (!window.confirm("¿Terminar la corrida del día? El reporte queda registrado.")) return;
+      guardarCorrida({ estado: "terminada" });
+      onClose();
+      return;
+    }
+    setFinDia({ tarimas, restante: Object.fromEntries(tarimas.map(t => [t.id, ""])), vaciar: {} });
+  };
+
+  // Confirmar el fin de día: ajusta el saldo de cada tarima al conteo físico que
+  // capturó Migue (cajas de limpio que quedaron), o a 0 si la marcó como vaciada.
+  const confirmarFinDia = () => {
+    finDia.tarimas.forEach(t => {
+      const tarima = (data.estibas || []).find(e => e.id === t.id);
+      if (!tarima) return;
+      let nuevoSaldo;
+      if (finDia.vaciar[t.id]) nuevoSaldo = 0;
+      else {
+        const r = finDia.restante[t.id];
+        if (r === "" || r == null) return; // sin dato: no se toca esa tarima
+        nuevoSaldo = Math.max(0, parseFloat(r) || 0);
+      }
+      upd("estibas", {
+        ...tarima,
+        saldo: nuevoSaldo,
+        cajas: nuevoSaldo > (tarima.cajas || 0) ? nuevoSaldo : tarima.cajas,
+        estado: nuevoSaldo <= 0 ? "consumida" : "activa",
+      });
     });
+    guardarCorrida({ estado: "terminada" });
+    setFinDia(null);
     onClose();
   };
 
@@ -12243,7 +12266,7 @@ function CorridaAjo({ data, add, upd, session, onClose }) {
     const nueva = crearEstiba(data, add, upd, {
       fase: "calibre", cajas, cultivo,
       parcelaId: "", siembraId: "",
-      consumos: consumosCal, cajasSinOrigen: sinOrigenCal,
+      consumos: consumosCal, cajasSinOrigen: sinOrigenCal, noDescontar: true,
       nota: `Calibre ${cal} · corrida ${folioCorrida}`,
       registradoPor: { rol: session.role, id: session.id, nombre: session.nombre },
     });
@@ -12302,23 +12325,45 @@ function CorridaAjo({ data, add, upd, session, onClose }) {
 
   return (
     <div>
+      {finDia && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 9000, background: "rgba(0,0,0,.75)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+          <div className="card" style={{ maxWidth: 460, width: "100%", maxHeight: "90vh", overflowY: "auto", margin: 0 }}>
+            <div className="card-title">🏁 Terminar corrida del día</div>
+            <div className="text-xs text-muted mb-3">
+              El reporte de hoy queda guardado. Para cada tarima de limpio que se usó, dime cuántas cajas de limpio quedaron (las de plástico), o márcala como vaciada. Así mañana muestra su saldo real.
+            </div>
+            {finDia.tarimas.map(t => (
+              <div key={t.id} className="card" style={{ background: "rgba(255,255,255,.03)", padding: 12, marginBottom: 8 }}>
+                <div className="font-bold text-sm" style={{ fontFamily: "monospace" }}>{t.codigo}</div>
+                <div className="text-xs text-muted mb-2">Saldo antes de hoy: {fmtN(t.saldoActual)} cajas de limpio</div>
+                <label className="flex-b" style={{ cursor: "pointer", marginBottom: 6 }}>
+                  <span className="text-sm">Se vació por completo</span>
+                  <input type="checkbox" checked={!!finDia.vaciar[t.id]} onChange={e => setFinDia(f => ({ ...f, vaciar: { ...f.vaciar, [t.id]: e.target.checked } }))} />
+                </label>
+                {!finDia.vaciar[t.id] && (
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label className="form-label">¿Cuántas cajas de limpio quedaron?</label>
+                    <input type="number" className="inp" placeholder={`Ej: ${fmtN(t.saldoActual)}`} value={finDia.restante[t.id]} onChange={e => setFinDia(f => ({ ...f, restante: { ...f.restante, [t.id]: e.target.value } }))} />
+                  </div>
+                )}
+              </div>
+            ))}
+            <div className="gap-row" style={{ marginTop: 10 }}>
+              <button className="btn btn-outline" onClick={() => setFinDia(null)}>Cancelar</button>
+              <button className="btn btn-accent" onClick={confirmarFinDia}>Guardar y terminar</button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="top-bar">
         <button className="btn-ghost" onClick={onClose}>‹</button>
         <h2>Corrida de ajo 🏭</h2>
       </div>
       <div className="section-pad">
         <div className="text-xs text-muted mb-3" style={{ paddingLeft: 4 }}>
-          Folio: <b>{reanudada ? corridaId : folioCorrida}</b>. Elige la estiba de limpio de origen, ve sumando cajas por calibre, y cierra cada estiba cuando junte su tamaño.
+          Folio: <b>{folioCorrida}</b>. Elige la estiba de limpio de origen, ve sumando cajas por calibre, y cierra cada estiba cuando junte su tamaño.
         </div>
-        {corridaPausada && !reanudada && estibasCerradas.length === 0 && (
-          <div className="card" style={{ background: "rgba(245,166,35,.08)", border: "1px solid rgba(245,166,35,.3)" }}>
-            <div className="text-sm font-bold" style={{ color: "var(--gold)" }}>⏸️ Hay una corrida sin terminar</div>
-            <div className="text-xs text-muted" style={{ margin: "4px 0 8px" }}>
-              Del {corridaPausada.fecha} · {(corridaPausada.estibas || []).length} estiba(s) cerrada(s){(() => { const ec = corridaPausada.enCurso || {}; const pend = calibresNum.filter(c => ((ec.contador || {})[c] || 0) > 0); return pend.length ? ` · en proceso: ${pend.map(c => `Cal.${c} ${fmtN(ec.contador[c])}`).join(", ")}` : ""; })()}
-            </div>
-            <button className="btn btn-accent btn-sm" style={{ width: "100%" }} onClick={reanudarCorrida}>▶️ Continuar esa corrida</button>
-          </div>
-        )}
+
 
         {/* Origen: estiba de limpio */}
         <div className="card">
@@ -12726,6 +12771,15 @@ function Estibas({ data, add, upd, session, onClose }) {
                 <div className="li-right" style={{ display: "flex", flexDirection: "column", gap: 2 }}>
                   <button className="btn-ghost text-xs" onClick={() => setVerEtiqueta(e)}>etiqueta</button>
                   <button className="btn-ghost text-xs" onClick={() => setRastreo(e)}>rastrear</button>
+                  {(e.fase === "limpia" || e.fase === "relimpia") && (
+                    <button className="btn-ghost text-xs" style={{ color: "var(--gold)" }} onClick={() => {
+                      const msg = saldo > 0
+                        ? `Cerrar la tarima ${e.codigo} con ${fmtN(saldo)} cajas todavía disponibles. Ya no aparecerá como origen en la corrida (esas cajas quedan fuera de circulación). ¿Confirmar?`
+                        : `Cerrar la tarima ${e.codigo}. Ya no aparecerá como origen en la corrida. ¿Confirmar?`;
+                      if (!window.confirm(msg)) return;
+                      upd("estibas", { ...e, estado: "consumida", saldoAlCerrar: saldo, cerradaManual: saldo > 0 });
+                    }}>cerrar</button>
+                  )}
                 </div>
               </div>
             );
