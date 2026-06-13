@@ -2347,7 +2347,7 @@ function AppInner() {
               {page === "ciclos" && <GestionCiclos data={data} add={add} upd={upd} del={del} onClose={() => setPage("home")} />}
               {page === "calendario" && <CalendarioCultivos data={data} add={add} upd={upd} del={del} session={session} onClose={() => setPage("home")} />}
               {page === "panel-parcelas" && <PanelParcelas data={data} add={add} del={del} session={session} onClose={() => setPage("home")} onNav={setPage} />}
-              {page === "asistencia" && <GestionAsistencia data={data} add={add} upd={upd} del={del} session={session} onClose={() => setPage("home")} />}
+              {page === "asistencia" && <PaseLista data={data} add={add} upd={upd} session={session} onClose={() => setPage("home")} />}
               {page === "resumen" && <ResumenSemanal data={data} onClose={() => setPage("home")} />}
               {page === "respaldo" && <RespaldoDatos data={data} setData={setData} onClose={() => setPage("home")} />}
               {page === "seguridad" && <PanelSeguridad data={data} add={add} upd={upd} session={session} onClose={() => setPage("home")} />}
@@ -2390,7 +2390,7 @@ function AppInner() {
               {page === "registrar-actividad" && <RegistroActividadAdmin data={data} add={add} upd={upd} setInv={setInv} session={session} onClose={() => setPage("home")} />}
               {page === "registro-masivo" && <RegistroMasivo data={data} add={add} upd={upd} setInv={setInv} session={session} onClose={() => setPage("home")} />}
               {page === "cosechas" && <GestionCosechas data={data} add={add} upd={upd} del={del} session={session} onClose={() => setPage("home")} />}
-              {page === "asistencia" && <GestionAsistencia data={data} add={add} upd={upd} del={del} session={session} onClose={() => setPage("home")} />}
+              {page === "asistencia" && <PaseLista data={data} add={add} upd={upd} session={session} onClose={() => setPage("home")} />}
               {page === "aprobacion-externos" && <AprobacionExternos data={data} upd={upd} onBack={() => setPage("home")} />}
               {page === "solicitudes" && <SolicitudesCompra data={data} add={add} upd={upd} del={del} setInv={setInv} aplicarLote={aplicarLote} session={session} onClose={() => setPage("home")} />}
               {page === "operacion" && <PanelOperacion data={data} onClose={() => setPage("home")} />}
@@ -2763,7 +2763,7 @@ function AdminHome({ data, alertas, onNav, onLogout, pending, online }) {
             <div className="option-card" onClick={() => onNav("ciclos")}><span className="oc-icon">📅</span><span className="oc-label">Temporadas</span><span className="oc-sub">Resultado global</span></div>
           </div>
           <div className="option-grid" style={{ marginBottom: 0 }}>
-            <div className="option-card" onClick={() => onNav("asistencia")}><span className="oc-icon">✅</span><span className="oc-label">Asistencia</span><span className="oc-sub">Días trabajados</span></div>
+            <div className="option-card" onClick={() => onNav("pase-lista")}><span className="oc-icon">✅</span><span className="oc-label">Pase de lista</span><span className="oc-sub">Asistencia de la semana</span></div>
             <div className="option-card" onClick={() => onNav("respaldo")}><span className="oc-icon">💾</span><span className="oc-label">Respaldo</span><span className="oc-sub">Guardar copia</span></div>
             <div className="option-card" onClick={() => onNav("seguridad")}><span className="oc-icon">🔐</span><span className="oc-label">Seguridad</span><span className="oc-sub">PINs de dirección</span></div>
             <div className="option-card" onClick={() => onNav("panel-financiero")}><span className="oc-icon">💰</span><span className="oc-label">¿Cómo vamos?</span><span className="oc-sub">Resumen del dinero</span></div>
@@ -3307,7 +3307,7 @@ function AdminEquipo({ data, add, upd, del, onBack }) {
           <input className="inp" placeholder="🔍 Buscar trabajador..." value={busqP} onChange={e => setBusqP(e.target.value)} style={{ marginBottom: 10 }} />
         )}
         {tab === "planta" && data.trabajadores.filter(t => !busqP.trim() || (t.nombre || "").toLowerCase().includes(busqP.trim().toLowerCase()) || (t.rol || "").toLowerCase().includes(busqP.trim().toLowerCase())).map(t => {
-          const acts = data.actividades.filter(a => a.registradoPor?.id === t.id);
+          const acts = (data.actividadesContables || data.actividades).filter(a => a.registradoPor?.id === t.id);
           const mo = acts.reduce((s, a) => s + a.costoMO, 0);
           const bons = data.bonificaciones.filter(b => b.trabajadorId === t.id).reduce((s, b) => s + b.monto, 0);
           const prestamoSaldo = (data.prestamos || []).filter(p => p.trabajadorId === t.id && p.estado === "activo").reduce((s, p) => s + Math.max(0, (p.monto || 0) - (p.abonado || 0)), 0);
@@ -3385,7 +3385,7 @@ function AdminEquipo({ data, add, upd, del, onBack }) {
           </>
         )}
         {tab === "cuadrillas" && data.cuadrillas.map(c => {
-          const acts = data.actividades.filter(a => a.registradoPor?.id === c.id && a.registradoPor?.tipo === "cuadrilla");
+          const acts = (data.actividadesContables || data.actividades).filter(a => a.registradoPor?.id === c.id && a.registradoPor?.tipo === "cuadrilla");
           return (
             <div key={c.id} className="list-item">
               <div className="li-icon">👥</div>
@@ -5553,10 +5553,16 @@ function AdminMovimientos({ data, add, upd, del, setInv }) {
   const [detalle, setDetalle] = useState(null);
 
   const movs = [];
+  // Índice de actividades contables: traen el costoMO repartido por día.
+  // Se listan TODAS las actividades (incluidas pendientes de aprobar), pero
+  // con el monto corregido cuando existe la versión contable.
+  const contIdx = {};
+  (data.actividadesContables || []).forEach(a => { contIdx[a.id] = a; });
   (data.actividades || []).forEach(a => {
+    const ac = contIdx[a.id] || a;
     const p = data.parcelas.find(x => x.id === a.parcelaId);
     const quien = nombreEjecutorAct(data, a.registradoPor);
-    movs.push({ tipo: "actividad", id: a.id, fecha: a.fecha, titulo: a.tipo, sub: `${p?.nombre || "—"} · ${quien || "—"}`, monto: a.costoTotal, signo: -1, icon: p?.emoji || "🌿", reg: a, parcelaId: a.parcelaId });
+    movs.push({ tipo: "actividad", id: a.id, fecha: a.fecha, titulo: a.tipo, sub: `${p?.nombre || "—"} · ${quien || "—"}`, monto: ac.costoTotal, signo: -1, icon: p?.emoji || "🌿", reg: ac, parcelaId: a.parcelaId });
   });
   (data.compras || []).forEach(c => {
     const trab = data.trabajadores.find(t => t.id === c.trabajadorId)?.nombre || data.cuadrillas.find(q => q.id === c.trabajadorId)?.nombre;
@@ -5841,10 +5847,9 @@ function EncargadoHome({ data, session, onNav, onLogout, online }) {
             <div className="option-card" onClick={() => onNav("personal")}><span className="oc-icon">👷</span><span className="oc-label">Personal</span><span className="oc-sub">Actividades, préstamos</span></div>
           </div>
           <div className="option-grid" style={{ marginBottom: 0 }}>
-            <div className="option-card" onClick={() => onNav("asistencia")}><span className="oc-icon">📅</span><span className="oc-label">Asistencia</span><span className="oc-sub">Pase de lista</span></div>
+            <div className="option-card" onClick={() => onNav("pase-lista")}><span className="oc-icon">✅</span><span className="oc-label">Pase de lista</span><span className="oc-sub">Asistencia de la semana</span></div>
             <div className="option-card" onClick={() => onNav("caja")}><span className="oc-icon">💵</span><span className="oc-label">Caja chica</span><span className="oc-sub">Gastos y movimientos</span></div>
             <div className="option-card" onClick={() => onNav("solicitudes")}><span className="oc-icon">🛒</span><span className="oc-label">Compras</span><span className="oc-sub">Solicitar y gestionar</span></div>
-            <div className="option-card" onClick={() => onNav("pase-lista")}><span className="oc-icon">✅</span><span className="oc-label">Pase de lista</span><span className="oc-sub">Asistencia de la semana</span></div>
             <div className="option-card" onClick={() => onNav("estibas")}><span className="oc-icon">🏷️</span><span className="oc-label">Estibas</span><span className="oc-sub">Etiquetas y trazabilidad</span></div>
             <div className="option-card" onClick={() => onNav("corrida")}><span className="oc-icon">🏭</span><span className="oc-label">Corrida</span><span className="oc-sub">Encajado por calibre</span></div>
             <div className="option-card" onClick={() => onNav("operacion")}><span className="oc-icon">🎯</span><span className="oc-label">Operación</span><span className="oc-sub">Qué pasa ahora en campo</span></div>
@@ -10987,8 +10992,7 @@ function AdminMasFunciones({ onNav, onClose }) {
       items: [
         { page: "tareas", icon: "✅", label: "Tareas", sub: "Asignar y dar seguimiento" },
         { page: "personal", icon: "👷", label: "Personal", sub: "Gestión de trabajadores" },
-        { page: "asistencia", icon: "📋", label: "Asistencia", sub: "Registro de jornadas" },
-        { page: "pase-lista", icon: "✅", label: "Pase de lista semanal", sub: "Palomear + capturar faltantes" },
+        { page: "pase-lista", icon: "✅", label: "Pase de lista", sub: "Asistencia + capturar faltantes" },
         { page: "registro-masivo", icon: "📝", label: "Registro masivo", sub: "Varias actividades de una vez" },
         { page: "embarque", icon: "🚛", label: "Salida de camión", sub: "Embarque de ajo y formato" },
         { page: "terminados", icon: "🧄", label: "Ajo terminado", sub: "Inventario por calibre" },
@@ -12552,7 +12556,9 @@ function NominaSemanal({ data, add, upd, session, onClose }) {
 
   // Renglón de nómina de una persona en la semana
   const renglon = (p) => {
-    const acts = (data.actividades || []).filter(a =>
+    // actividadesContables trae el costoMO ya repartido por día (la misma lógica
+    // de los reportes): 3 actividades en un día = UN sueldo diario, no tres.
+    const acts = (data.actividadesContables || data.actividades || []).filter(a =>
       a.registradoPor?.id === p.id && a.fecha >= ini && a.fecha <= fin);
     const mo = acts.reduce((s, a) => s + (a.costoMO || 0), 0);
     const dias = new Set(acts.map(a => a.fecha)).size;
@@ -12765,8 +12771,20 @@ function PaseLista({ data, add, upd, session, onClose }) {
   // ── Captura masiva de faltantes ──
   const [capturar, setCapturar] = useState(false);
   const [selFalt, setSelFalt] = useState({}); // {`tid|fecha`: true}
-  const CAP0 = { parcelaId: "", tipo: "Jornal general", horas: "8" };
+  const CAP0 = { parcelaId: "", tipo: "", tipoOtro: "", horas: "8" };
   const [cap, setCap] = useState(CAP0);
+  // Catálogo de actividades: las canónicas + las ya usadas en el rancho
+  // (sin duplicar por mayúsculas/ortografía) + la sugerida del mes para la parcela.
+  const tiposCanon = ["Preparación de suelo", "Siembra", "Fertilización", "Riego", "Control de plagas", "Deshierbe", "Cosecha", "Limpieza"];
+  const tiposMap = new Map();
+  tiposCanon.forEach(t => tiposMap.set(t.toLowerCase(), t));
+  (data.actividades || []).forEach(a => {
+    const t = (a.tipo || "").trim();
+    if (t && !tiposMap.has(t.toLowerCase())) tiposMap.set(t.toLowerCase(), t);
+  });
+  const tiposLista = [...tiposMap.values()].sort((a, b) => a.localeCompare(b));
+  const parcelaCap = (data.parcelas || []).find(p => p.id === cap.parcelaId);
+  const sugMes = parcelaCap ? getSugerencia(parcelaCap, new Date().getMonth() + 1) : null;
   const [hecho, setHecho] = useState(0);
 
   const abrirCaptura = () => {
@@ -12777,6 +12795,8 @@ function PaseLista({ data, add, upd, session, onClose }) {
 
   const ejecutarCaptura = () => {
     if (!cap.parcelaId) { alert("Elige la parcela donde trabajaron"); return; }
+    const tipoFinal = cap.tipo === "__otro__" ? (cap.tipoOtro || "").trim() : cap.tipo;
+    if (!tipoFinal) { alert("Elige qué actividad hicieron"); return; }
     const horas = parseFloat(cap.horas) || 8;
     const elegidos = faltantes.filter(x => selFalt[`${x.t.id}|${x.fecha}`]);
     if (elegidos.length === 0) { alert("No hay nadie seleccionado"); return; }
@@ -12784,7 +12804,7 @@ function PaseLista({ data, add, upd, session, onClose }) {
     elegidos.forEach(({ t, fecha }) => {
       const costoMO = (t.sueldo || 0) * (horas / 8);
       add("actividades", {
-        id: `a${Date.now()}${idx}`, fecha, parcelaId: cap.parcelaId, tipo: cap.tipo || "Jornal general",
+        id: `a${Date.now()}${idx}`, fecha, parcelaId: cap.parcelaId, tipo: tipoFinal,
         siembraId: null,
         registradoPor: { tipo: "planta", id: t.id },
         maquinariaId: null, horas_maq: 0, horas_trab: horas,
@@ -12851,9 +12871,21 @@ function PaseLista({ data, add, upd, session, onClose }) {
               </select>
             </div>
             <div className="inp-row">
-              <div className="form-group" style={{ flex: 2 }}><label className="form-label">Tipo de actividad</label><input className="inp" value={cap.tipo} onChange={e => setCap(c => ({ ...c, tipo: e.target.value }))} /></div>
+              <div className="form-group" style={{ flex: 2 }}><label className="form-label">¿Qué actividad hicieron?</label>
+                <select className="inp" value={cap.tipo} onChange={e => setCap(c => ({ ...c, tipo: e.target.value }))}>
+                  <option value="">Elegir actividad…</option>
+                  {sugMes?.actividad && <option value={sugMes.actividad}>⭐ {sugMes.actividad} (sugerida este mes)</option>}
+                  {tiposLista.filter(t => t !== sugMes?.actividad).map(t => <option key={t} value={t}>{t}</option>)}
+                  <option value="__otro__">Otra…</option>
+                </select>
+              </div>
               <div className="form-group" style={{ flex: 1 }}><label className="form-label">Horas</label><input type="number" className="inp" value={cap.horas} onChange={e => setCap(c => ({ ...c, horas: e.target.value }))} /></div>
             </div>
+            {cap.tipo === "__otro__" && (
+              <div className="form-group"><label className="form-label">Escribe la actividad (revisa la ortografía: así saldrá en los reportes)</label>
+                <input className="inp" value={cap.tipoOtro} onChange={e => setCap(c => ({ ...c, tipoOtro: e.target.value }))} />
+              </div>
+            )}
             <div className="text-xs text-muted mb-2">Desmarca a quien no aplique (o captúralo aparte con otra parcela/actividad).</div>
             {faltantes.map(({ t, fecha }) => {
               const k = `${t.id}|${fecha}`;
