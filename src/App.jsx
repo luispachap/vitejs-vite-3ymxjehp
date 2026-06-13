@@ -12047,6 +12047,16 @@ function CorridaAjo({ data, add, upd, session, onClose }) {
   const [folioCorrida] = useState(`COR-${Date.now().toString().slice(-6)}`);
   const [corridaId] = useState(`cor${Date.now()}`);
   const [responsable, setResponsable] = useState("");
+  // Rendimiento por TARIMA (tramo): cuánto ha rendido la tarima de limpio actual,
+  // por calibre. Al cambiar de tarima se guarda su tramo sin perder el conteo.
+  const [rendTramo, setRendTramo] = useState(() => Object.fromEntries(calibresNum.map(c => [c, 0])));
+  // Cajas contadas del origen actual aún no cerradas en estiba (para repartir
+  // trazabilidad si una estiba de calibre se completa con dos tarimas).
+  const [contadorTramo, setContadorTramo] = useState(() => Object.fromEntries(calibresNum.map(c => [c, 0])));
+  // Aportes de tarimas anteriores a cajas aún no cerradas: { cal: [{id, codigo, cajas}] }
+  const [aportesPrevios, setAportesPrevios] = useState({});
+  // Tramos cerrados (rendimiento histórico de cada tarima ya vaciada en esta corrida)
+  const [tramos, setTramos] = useState([]);
 
   // Estibas de limpio disponibles como origen
   const saldoDe = (e) => (e.saldo != null ? e.saldo : e.cajas);
@@ -12074,7 +12084,44 @@ function CorridaAjo({ data, add, upd, session, onClose }) {
     try { localStorage.setItem("agro_corrida_cfg", JSON.stringify({ cajasPorEstiba, taraCal })); } catch { /* ignorar */ }
   }, [cajasPorEstiba, taraCal]);
 
-  const sumar = (cal, n) => setContador(c => ({ ...c, [cal]: Math.max(0, (c[cal] || 0) + n) }));
+  const sumar = (cal, n) => {
+    setContador(c => ({ ...c, [cal]: Math.max(0, (c[cal] || 0) + n) }));
+    // El tramo solo cuenta cajas atribuibles a la tarima de limpio actual.
+    setRendTramo(r => ({ ...r, [cal]: Math.max(0, (r[cal] || 0) + n) }));
+    setContadorTramo(c => ({ ...c, [cal]: Math.max(0, (c[cal] || 0) + n) }));
+  };
+
+  // Cambiar de tarima de limpio a media corrida: guarda el rendimiento de la
+  // tarima que se está soltando (sin perder las cajas ya contadas que aún no
+  // cierran estiba: esas "viajan" como aporte previo para repartir trazabilidad).
+  const tramoTieneAlgo = calibresNum.some(c => (contadorTramo[c] || 0) > 0 || (rendTramo[c] || 0) > 0);
+  const cambiarTarima = (nuevoId) => {
+    if (estibaOrigen && tramoTieneAlgo) {
+      const resumen = calibresNum.filter(c => (rendTramo[c] || 0) > 0).map(c => `Cal.${c}: ${fmtN(rendTramo[c])}`).join(" · ") || "sin cajas";
+      const ok = window.confirm(`Vas a cambiar de tarima.\n\nLa tarima ${estibaOrigen.codigo} rindió:\n${resumen}\n\nSe guardará su rendimiento y las cajas que aún no cierran estiba seguirán contando su origen. ¿Continuar?`);
+      if (!ok) return false;
+      // Guardar el tramo cerrado (rendimiento histórico de esta tarima)
+      setTramos(t => [...t, {
+        estibaId: estibaOrigen.id, codigo: estibaOrigen.codigo,
+        porCalibre: { ...rendTramo },
+        totalCajas: calibresNum.reduce((sm, c) => sm + (rendTramo[c] || 0), 0),
+      }]);
+      // Las cajas contadas y aún no cerradas quedan como aporte previo de esta tarima
+      setAportesPrevios(prev => {
+        const next = { ...prev };
+        calibresNum.forEach(c => {
+          const pend = contadorTramo[c] || 0;
+          if (pend > 0) next[c] = [...(next[c] || []), { id: estibaOrigen.id, codigo: estibaOrigen.codigo, cajas: pend }];
+        });
+        return next;
+      });
+      // Reiniciar el tramo para la nueva tarima
+      setRendTramo(Object.fromEntries(calibresNum.map(c => [c, 0])));
+      setContadorTramo(Object.fromEntries(calibresNum.map(c => [c, 0])));
+    }
+    setEstibaOrigenId(nuevoId);
+    return true;
+  };
 
   // Iniciar el cierre de una estiba de un calibre
   const iniciarCierre = (cal) => {
@@ -12096,12 +12143,24 @@ function CorridaAjo({ data, add, upd, session, onClose }) {
       const seguir = window.confirm(`La estiba de origen ${estibaOrigen.codigo} solo tiene ${fmtN(saldoDe(estibaOrigen))} cajas disponibles y vas a cerrar ${fmtN(cajas)}. ¿Continuar? (su saldo quedará en 0)`);
       if (!seguir) return;
     }
-    // Crear estiba de calibre (hereda trazabilidad de la estiba de limpio origen).
-    // Toma cajas de la estiba de origen (consumo parcial según las cajas de esta estiba).
+    // Reparto de trazabilidad MULTI-TARIMA: las cajas de esta estiba pueden venir
+    // de tarimas anteriores (aportesPrevios) y de la tarima actual. Se arma el
+    // consumo respetando el orden y sin exceder lo contado de cada una.
+    const previos = (aportesPrevios[cal] || []);
+    const consumosCal = [];
+    previos.forEach(ap => { if (ap.cajas > 0) consumosCal.push({ id: ap.id, cajas: ap.cajas }); }); // cajas heredadas
+    const aportePrevioTotal = previos.reduce((sm, ap) => sm + ap.cajas, 0);
+    const deTarimaActual = Math.max(0, cajas - aportePrevioTotal);
+    if (estibaOrigen && deTarimaActual > 0) {
+      consumosCal.push({ id: estibaOrigen.id, cajas: Math.min(deTarimaActual, saldoDe(estibaOrigen)) });
+    }
+    // Si aun así no se cubre (tarima actual sin saldo o sin origen), el resto queda sin origen.
+    const sumConsumos = consumosCal.reduce((sm, c) => sm + c.cajas, 0);
+    const sinOrigenCal = Math.max(0, cajas - sumConsumos);
     const nueva = crearEstiba(data, add, upd, {
       fase: "calibre", cajas, cultivo,
       parcelaId: "", siembraId: "",
-      consumos: estibaOrigen ? [{ id: estibaOrigen.id, cajas }] : [],
+      consumos: consumosCal, cajasSinOrigen: sinOrigenCal,
       nota: `Calibre ${cal} · corrida ${folioCorrida}`,
       registradoPor: { rol: session.role, id: session.id, nombre: session.nombre },
     });
@@ -12125,12 +12184,18 @@ function CorridaAjo({ data, add, upd, session, onClose }) {
       estibaOrigenId: estibaOrigen ? estibaOrigen.id : "",
       estibaOrigenCodigo: estibaOrigen ? estibaOrigen.codigo : "",
       parcelasOrigen, responsable, cajasPorEstiba,
+      tramos, // rendimiento por tarima ya cerrada (cambios de tarima)
+      tramoActual: { estibaId: estibaOrigen ? estibaOrigen.id : "", codigo: estibaOrigen ? estibaOrigen.codigo : "", porCalibre: { ...rendTramo } },
       estibas: cerradasNuevo,
       totalEstibas: cerradasNuevo.length,
       totalCajas: cerradasNuevo.reduce((s, e) => s + e.cajas, 0),
       totalNeto: cerradasNuevo.reduce((s, e) => s + e.neto, 0),
       registradoPor: { rol: session.role, id: session.id, nombre: session.nombre },
     });
+    // Los aportes previos de este calibre ya se consumieron en esta estiba
+    setAportesPrevios(prev => { const next = { ...prev }; delete next[cal]; return next; });
+    // El contador del tramo actual de este calibre vuelve a cero (sus cajas ya cerraron)
+    setContadorTramo(c => ({ ...c, [cal]: 0 }));
     // Reiniciar el contador de ese calibre (sigue corriendo para la próxima estiba)
     setContador(c => ({ ...c, [cal]: 0 }));
     setCerrando(null); setPesoBruto("");
@@ -12190,7 +12255,7 @@ function CorridaAjo({ data, add, upd, session, onClose }) {
           </div>
           <div className="form-group">
             <label className="form-label">🏷️ Estiba de limpio de origen</label>
-            <select className="inp" value={estibaOrigenId} onChange={e => setEstibaOrigenId(e.target.value)}>
+            <select className="inp" value={estibaOrigenId} onChange={e => { const v = e.target.value; if (v === "__nueva__") { setEstibaOrigenId("__nueva__"); return; } cambiarTarima(v); }}>
               <option value="">Elegir estiba…</option>
               {estibasLimpio.map(e => {
                 const parc = rastrearOrigen(data, e.id).map(nombreParcela);
@@ -12227,6 +12292,20 @@ function CorridaAjo({ data, add, upd, session, onClose }) {
               <div className="text-xs mt-1" style={{ color: "var(--gold)" }}>⚠️ Esta estiba ya se agotó. Los cierres conservan su trazabilidad, pero elige la siguiente estiba para continuar.</div>
             )}
             {estibasLimpio.length === 0 && <div className="text-xs text-muted mt-1">No hay estibas de limpio activas. Créalas en "Estibas y trazabilidad".</div>}
+            {estibaOrigen && tramoTieneAlgo && (
+              <div className="text-xs mt-2" style={{ color: "var(--accent)" }}>
+                🧮 De esta tarima llevas: {calibresNum.filter(c => (rendTramo[c] || 0) > 0).map(c => `Cal.${c} ${fmtN(rendTramo[c])}`).join(" · ") || "—"} ({fmtN(calibresNum.reduce((sm, c) => sm + (rendTramo[c] || 0), 0))} cajas)
+                <div className="text-muted" style={{ marginTop: 2 }}>Para cambiar de tarima sin perder esto, elige otra en el selector de arriba.</div>
+              </div>
+            )}
+            {tramos.length > 0 && (
+              <div className="text-xs mt-2">
+                <div className="text-muted">Tarimas ya corridas en esta corrida:</div>
+                {tramos.map((tr, i) => (
+                  <div key={i} style={{ color: "var(--gold)" }}>📋 {tr.codigo}: {calibresNum.filter(c => (tr.porCalibre[c] || 0) > 0).map(c => `Cal.${c} ${fmtN(tr.porCalibre[c])}`).join(" · ")} ({fmtN(tr.totalCajas)} cajas)</div>
+                ))}
+              </div>
+            )}
           </div>
           <div className="form-group"><label className="form-label">Responsable</label><input className="inp" placeholder="Quién corre" value={responsable} onChange={e => setResponsable(e.target.value)} /></div>
         </div>
