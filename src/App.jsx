@@ -12530,6 +12530,12 @@ function Estibas({ data, add, upd, session, onClose }) {
   const [consumos, setConsumos] = useState({});
   const [verEtiqueta, setVerEtiqueta] = useState(null);
   const [rastreo, setRastreo] = useState(null);
+  // Alta MASIVA: dar de alta muchas estibas iguales de una parcela de un golpe.
+  // Para barbecho/limpio cuando ya están físicamente apiladas en bodega.
+  const [masivo, setMasivo] = useState(false);
+  const M0 = { cultivo: cultivos[0] || "Ajo", siembraId: "", origenTipo: "parcela", barbechoId: "", numEstibas: "", cajasCadaUna: "", excepciones: [] };
+  const [masForm, setMasForm] = useState(M0);
+  const [creadasMasivo, setCreadasMasivo] = useState(null); // resumen tras crear (para imprimir)
 
   const estibas = (data.estibas || []);
   const saldoDe = (e) => (e.saldo != null ? e.saldo : e.cajas);
@@ -12551,6 +12557,56 @@ function Estibas({ data, add, upd, session, onClose }) {
 
   // Total de cajas que se están tomando de los orígenes
   const totalConsumido = Object.values(consumos).reduce((s, v) => s + (parseFloat(v) || 0), 0);
+
+  // Crear MUCHAS estibas de un golpe (misma parcela, mismo número de cajas, con
+  // excepciones puntuales). Para barbecho/limpio ya apiladas en bodega.
+  const crearMasivo = () => {
+    const num = parseInt(masForm.numEstibas) || 0;
+    const cajasBase = parseFloat(masForm.cajasCadaUna) || 0;
+    if (num <= 0) { alert("¿Cuántas estibas vas a dar de alta?"); return; }
+    if (cajasBase <= 0) { alert("¿Cuántas cajas tiene cada estiba?"); return; }
+
+    // Resolver origen/parcela
+    let parcelaId = "", siembraId = "", consumosBarbecho = null, etiquetaOrigen = "";
+    if (masForm.origenTipo === "parcela") {
+      if (!masForm.siembraId) { alert("Elige la parcela / siembra de origen"); return; }
+      const sb = (data.siembras || []).find(s => s.id === masForm.siembraId);
+      if (sb) { parcelaId = sb.parcelaId; siembraId = sb.id; etiquetaOrigen = nombreParcela(sb.parcelaId); }
+    } else {
+      // Limpio que hereda de UNA estiba de barbecho ya registrada
+      if (!masForm.barbechoId) { alert("Elige la estiba de barbecho de origen"); return; }
+      consumosBarbecho = masForm.barbechoId;
+      const bb = estibas.find(e => e.id === masForm.barbechoId);
+      etiquetaOrigen = bb ? bb.codigo : "";
+    }
+
+    // Cajas por estiba: base, con excepciones {indice: cajas}
+    const cajasPorEstiba = Array.from({ length: num }, (_, i) => {
+      const exc = masForm.excepciones.find(x => x.idx === i);
+      return exc && (parseFloat(exc.cajas) || 0) > 0 ? parseFloat(exc.cajas) : cajasBase;
+    });
+
+    const creadas = [];
+    cajasPorEstiba.forEach(cajas => {
+      // Para limpio desde barbecho: el consumo apunta al barbecho (trazabilidad),
+      // pero NO descuenta saldo 1:1 (limpio y barbecho difieren), igual que la corrida.
+      const consumos = consumosBarbecho ? [{ id: consumosBarbecho, cajas }] : [];
+      const nueva = crearEstiba(data, add, upd, {
+        fase, cajas, cultivo: masForm.cultivo,
+        parcelaId: masForm.origenTipo === "parcela" ? parcelaId : "",
+        siembraId: masForm.origenTipo === "parcela" ? siembraId : "",
+        consumos, noDescontar: true,
+        nota: `Alta masiva${etiquetaOrigen ? " · " + etiquetaOrigen : ""}`,
+        registradoPor: { rol: session.role, id: session.id, nombre: session.nombre },
+      });
+      creadas.push({ codigo: nueva.codigo, cajas, id: nueva.id });
+    });
+
+    setCreadasMasivo({ fase, origen: etiquetaOrigen, estibas: creadas, total: creadas.reduce((s, e) => s + e.cajas, 0) });
+    setMasForm(M0);
+    setMasivo(false);
+  };
+
 
   const guardar = () => {
     const nCajas = parseFloat(form.cajas) || 0;
@@ -12597,6 +12653,32 @@ function Estibas({ data, add, upd, session, onClose }) {
     setForm(F0); setConsumos({}); setCrear(false);
     setVerEtiqueta(nueva);
   };
+
+  // --- Resumen tras alta masiva: imprime todas las etiquetas de un golpe ---
+  if (creadasMasivo) {
+    return (
+      <div>
+        <div className="top-bar"><button className="btn-ghost" onClick={() => setCreadasMasivo(null)}>‹</button><h2>Estibas creadas</h2></div>
+        <div className="section-pad">
+          <div className="card" style={{ background: "rgba(126,200,50,.08)", border: "1px solid rgba(126,200,50,.3)" }}>
+            <div className="text-sm font-bold" style={{ color: "var(--safe)" }}>✓ {creadasMasivo.estibas.length} estibas de {(FASES_ESTIBA[creadasMasivo.fase] || {}).nombre.toLowerCase()} dadas de alta</div>
+            <div className="text-xs text-muted" style={{ marginTop: 2 }}>{creadasMasivo.origen ? `Origen: ${creadasMasivo.origen} · ` : ""}total {fmtN(creadasMasivo.total)} cajas</div>
+          </div>
+          <button className="btn btn-accent" style={{ width: "100%", marginBottom: 12 }} onClick={() => window.print()}>🖨️ Imprimir todas las etiquetas</button>
+          <div className="printable">
+            {creadasMasivo.estibas.map(e => (
+              <div key={e.id} className="card" style={{ background: "#fff", color: "#1a1a1a", textAlign: "center", border: "2px solid #1f3a1e", pageBreakInside: "avoid", marginBottom: 10 }}>
+                <div style={{ fontSize: 12, color: "#666", letterSpacing: 1 }}>AGROSELECTOS P&A</div>
+                <div style={{ fontSize: 11, color: "#888" }}>{(FASES_ESTIBA[creadasMasivo.fase] || {}).nombre}{creadasMasivo.origen ? ` · ${creadasMasivo.origen}` : ""}</div>
+                <div style={{ fontSize: 26, fontWeight: 800, letterSpacing: 2, color: "#1f3a1e", fontFamily: "monospace", margin: "8px 0" }}>{e.codigo}</div>
+                <div style={{ fontSize: 14 }}><b>{fmtN(e.cajas)} cajas</b></div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // --- Vista etiqueta ---
   if (verEtiqueta) {
@@ -12680,9 +12762,93 @@ function Estibas({ data, add, upd, session, onClose }) {
             Las estibas de calibre nacen en la <b>Corrida de ajo</b> 🏭 al cerrar cada calibre. Aquí puedes ver sus etiquetas y rastrearlas.
           </div>
         ) : (
-          <button className="btn btn-accent" style={{ width: "100%", marginBottom: 14 }} onClick={() => { setCrear(v => !v); setForm(F0); setConsumos({}); }}>
-            {crear ? "✕ Cancelar" : `+ Nueva estiba de ${(FASES_ESTIBA[fase] || {}).nombre.toLowerCase()}`}
-          </button>
+          <>
+            <button className="btn btn-accent" style={{ width: "100%", marginBottom: 8 }} onClick={() => { setCrear(v => !v); setForm(F0); setConsumos({}); setMasivo(false); }}>
+              {crear ? "✕ Cancelar" : `+ Nueva estiba de ${(FASES_ESTIBA[fase] || {}).nombre.toLowerCase()}`}
+            </button>
+            <button className="btn btn-outline" style={{ width: "100%", marginBottom: 14 }} onClick={() => { setMasivo(v => !v); setMasForm(M0); setCrear(false); }}>
+              {masivo ? "✕ Cancelar" : `📦 Alta masiva (varias estibas de una parcela)`}
+            </button>
+          </>
+        )}
+
+        {masivo && (
+          <div className="card">
+            <div className="card-title">Alta masiva · {(FASES_ESTIBA[fase] || {}).nombre}</div>
+            <div className="text-xs text-muted mb-3">Da de alta muchas estibas iguales de una parcela de un solo golpe. Útil cuando ya están apiladas en bodega.</div>
+            <div className="form-group"><label className="form-label">Cultivo</label>
+              <select className="inp" value={masForm.cultivo} onChange={e => setMasForm(f => ({ ...f, cultivo: e.target.value }))}>
+                {cultivos.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+            {fase === "limpia" && (
+              <div className="form-group"><label className="form-label">¿De dónde viene el origen?</label>
+                <select className="inp" value={masForm.origenTipo} onChange={e => setMasForm(f => ({ ...f, origenTipo: e.target.value }))}>
+                  <option value="parcela">Directo de una parcela (sé de cuál es)</option>
+                  <option value="barbecho">De una estiba de barbecho ya registrada</option>
+                </select>
+              </div>
+            )}
+            {masForm.origenTipo === "parcela" ? (
+              <div className="form-group"><label className="form-label">🔗 Parcela / siembra de origen</label>
+                <select className="inp" value={masForm.siembraId} onChange={e => setMasForm(f => ({ ...f, siembraId: e.target.value }))}>
+                  <option value="">Elegir parcela…</option>
+                  {(data.siembras || []).filter(s => s.cultivoNombre === masForm.cultivo && s.estado !== "cancelada").map(s => {
+                    const p = (data.parcelas || []).find(x => x.id === s.parcelaId);
+                    return <option key={s.id} value={s.id}>{p?.nombre || s.parcelaId}{s.variedad ? ` · ${s.variedad}` : ""}</option>;
+                  })}
+                </select>
+              </div>
+            ) : (
+              <div className="form-group"><label className="form-label">🔗 Estiba de barbecho de origen</label>
+                <select className="inp" value={masForm.barbechoId} onChange={e => setMasForm(f => ({ ...f, barbechoId: e.target.value }))}>
+                  <option value="">Elegir estiba…</option>
+                  {activas.filter(e => e.fase === "barbecho" && e.cultivo === masForm.cultivo).map(e => (
+                    <option key={e.id} value={e.id}>{e.codigo} · {fmtN(saldoDe(e))} cajas{e.parcelaId ? ` · ${nombreParcela(e.parcelaId)}` : ""}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+            <div className="inp-row">
+              <div className="form-group" style={{ flex: 1 }}><label className="form-label">¿Cuántas estibas?</label>
+                <input type="number" className="inp" placeholder="Ej: 15" value={masForm.numEstibas} onChange={e => setMasForm(f => ({ ...f, numEstibas: e.target.value, excepciones: [] }))} />
+              </div>
+              <div className="form-group" style={{ flex: 1 }}><label className="form-label">Cajas c/u</label>
+                <input type="number" className="inp" placeholder="Ej: 30" value={masForm.cajasCadaUna} onChange={e => setMasForm(f => ({ ...f, cajasCadaUna: e.target.value }))} />
+              </div>
+            </div>
+            {/* Excepciones: estibas con número distinto */}
+            {(parseInt(masForm.numEstibas) || 0) > 0 && (parseFloat(masForm.cajasCadaUna) || 0) > 0 && (
+              <div className="mb-2">
+                <div className="text-xs text-muted mb-1">¿Alguna estiba tiene un número distinto? (opcional)</div>
+                {masForm.excepciones.map((exc, i) => (
+                  <div key={i} className="inp-row" style={{ marginBottom: 4 }}>
+                    <div className="form-group" style={{ flex: 1, margin: 0 }}>
+                      <select className="inp" value={exc.idx} onChange={e => setMasForm(f => { const ex = [...f.excepciones]; ex[i] = { ...ex[i], idx: parseInt(e.target.value) }; return { ...f, excepciones: ex }; })}>
+                        {Array.from({ length: parseInt(masForm.numEstibas) || 0 }, (_, n) => <option key={n} value={n}>Estiba #{n + 1}</option>)}
+                      </select>
+                    </div>
+                    <div className="form-group" style={{ flex: 1, margin: 0 }}>
+                      <input type="number" className="inp" placeholder="cajas" value={exc.cajas} onChange={e => setMasForm(f => { const ex = [...f.excepciones]; ex[i] = { ...ex[i], cajas: e.target.value }; return { ...f, excepciones: ex }; })} />
+                    </div>
+                    <button className="btn-ghost" style={{ color: "var(--red)" }} onClick={() => setMasForm(f => ({ ...f, excepciones: f.excepciones.filter((_, j) => j !== i) }))}>✕</button>
+                  </div>
+                ))}
+                <button className="btn-ghost text-xs" style={{ color: "var(--accent)" }} onClick={() => setMasForm(f => ({ ...f, excepciones: [...f.excepciones, { idx: 0, cajas: "" }] }))}>+ Agregar excepción</button>
+              </div>
+            )}
+            {/* Resumen previo */}
+            {(parseInt(masForm.numEstibas) || 0) > 0 && (parseFloat(masForm.cajasCadaUna) || 0) > 0 && (() => {
+              const num = parseInt(masForm.numEstibas);
+              const base = parseFloat(masForm.cajasCadaUna);
+              const total = Array.from({ length: num }, (_, i) => {
+                const exc = masForm.excepciones.find(x => x.idx === i);
+                return exc && (parseFloat(exc.cajas) || 0) > 0 ? parseFloat(exc.cajas) : base;
+              }).reduce((s, v) => s + v, 0);
+              return <div className="text-sm" style={{ color: "var(--accent)", marginBottom: 8 }}>Se crearán <b>{num} estibas</b> · total <b>{fmtN(total)} cajas</b></div>;
+            })()}
+            <button className="btn btn-accent" style={{ width: "100%" }} onClick={crearMasivo}>Dar de alta todas</button>
+          </div>
         )}
 
         {crear && (
