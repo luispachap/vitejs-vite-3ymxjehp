@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo, Component } from "react";
 import { supabase, supabaseListo, cuentaTecnicaListo, iniciarConCuentaTecnica } from "./supabase";
-import { migrarCatalogos, leerTodo, CATALOGOS, subirColeccion, guardarRegistro, borrarRegistro, vaciarTabla } from "./dataApi";
+import { migrarCatalogos, leerTodo, CATALOGOS, subirColeccion, guardarRegistro, borrarRegistro, vaciarTabla, leerColeccion } from "./dataApi";
 import { generarPlantilla, leerExcel, excelAColecciones, validar, generarSQLCuentas, exportarPolizas, HOJAS } from "./excelLoader";
 
 /* ════════════ LOGO ════════════ */
@@ -2235,7 +2235,7 @@ function AppInner() {
   // Sin esto se recalcularía en cada render de App (cada navegación lo pagaría).
   const alertas = useMemo(() => genAlertas(data), [data]);
 
-  if (!session) return <div className="agro-root"><style>{CSS}</style><LoginScreen data={data} add={add} onLogin={setSession} /></div>;
+  if (!session) return <div className="agro-root"><style>{CSS}</style><LoginScreen data={data} add={add} upd={upd} onLogin={setSession} /></div>;
 
   const isAdmin = session.role === "admin";
   const isCuad = session.role === "cuadrilla";
@@ -2470,7 +2470,7 @@ export default function App() {
   );
 }
 
-function LoginScreen({ data, add, onLogin }) {
+function LoginScreen({ data, add, upd, onLogin }) {
   const [role, setRole] = useState("trabajador");
   const [busq, setBusq] = useState("");
   const [pwd, setPwd] = useState("");
@@ -2519,7 +2519,22 @@ function LoginScreen({ data, add, onLogin }) {
     // PINs de dirección: si ya se configuró un PIN propio (pantalla Seguridad),
     // se compara contra su hash. El PIN de fábrica solo funciona mientras no
     // exista uno propio — y el panel de inicio lo marca en rojo hasta cambiarlo.
-    const cfgSec = (data.config_seguridad || [])[0] || {};
+    // IMPORTANTE: para roles de dirección bajamos la config de seguridad FRESCA
+    // de la nube antes de validar. Así, si en otro dispositivo se cambió el PIN,
+    // este dispositivo valida contra el PIN nuevo aunque aún no haya sincronizado.
+    let cfgSec = (data.config_seguridad || [])[0] || {};
+    if (["admin", "dueno", "finanzas"].includes(role) && supabaseListo) {
+      setCargando(true);
+      try {
+        const frescas = await leerColeccion("config_seguridad");
+        if (frescas && frescas[0]) {
+          cfgSec = frescas[0];
+          // Guardar también en el estado local para no volver a pedirlo enseguida
+          upd("config_seguridad", frescas[0]);
+        }
+      } catch { /* sin conexión: usar lo local */ }
+      setCargando(false);
+    }
     const verificarPinRol = async (rol, fabrica) => {
       const hashGuardado = cfgSec["pin_" + rol];
       if (hashGuardado) {
