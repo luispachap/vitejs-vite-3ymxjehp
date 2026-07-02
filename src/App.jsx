@@ -426,16 +426,20 @@ function numeroALetras(monto) {
   const UNI = ["", "UN", "DOS", "TRES", "CUATRO", "CINCO", "SEIS", "SIETE", "OCHO", "NUEVE", "DIEZ", "ONCE", "DOCE", "TRECE", "CATORCE", "QUINCE", "DIECISÉIS", "DIECISIETE", "DIECIOCHO", "DIECINUEVE", "VEINTE", "VEINTIUNO", "VEINTIDÓS", "VEINTITRÉS", "VEINTICUATRO", "VEINTICINCO", "VEINTISÉIS", "VEINTISIETE", "VEINTIOCHO", "VEINTINUEVE"];
   const DEC = ["", "", "", "TREINTA", "CUARENTA", "CINCUENTA", "SESENTA", "SETENTA", "OCHENTA", "NOVENTA"];
   const CEN = ["", "CIENTO", "DOSCIENTOS", "TRESCIENTOS", "CUATROCIENTOS", "QUINIENTOS", "SEISCIENTOS", "SETECIENTOS", "OCHOCIENTOS", "NOVECIENTOS"];
-  const aLetras = (n) => {
-    if (n <= 29) return UNI[n];
-    if (n < 100) { const d = Math.floor(n / 10), u = n % 10; return DEC[d] + (u ? " Y " + UNI[u] : ""); }
+  const aLetras = (n, apocope) => {
+    // apocope: "VEINTIUNO"→"VEINTIÚN" y "UNO"→"UN" cuando antecede a MIL/MILLONES.
+    if (n <= 29) { const s = UNI[n]; return apocope && n === 21 ? "VEINTIÚN" : s; }
+    if (n < 100) { const d = Math.floor(n / 10), u = n % 10; return DEC[d] + (u ? " Y " + (apocope && u === 1 ? "UN" : UNI[u]) : ""); }
     if (n === 100) return "CIEN";
-    if (n < 1000) { const c = Math.floor(n / 100), r = n % 100; return CEN[c] + (r ? " " + aLetras(r) : ""); }
-    if (n < 1000000) { const m = Math.floor(n / 1000), r = n % 1000; return (m === 1 ? "MIL" : aLetras(m) + " MIL") + (r ? " " + aLetras(r) : ""); }
+    if (n < 1000) { const c = Math.floor(n / 100), r = n % 100; return CEN[c] + (r ? " " + aLetras(r, apocope) : ""); }
+    if (n < 1000000) { const m = Math.floor(n / 1000), r = n % 1000; return (m === 1 ? "MIL" : aLetras(m, true) + " MIL") + (r ? " " + aLetras(r, apocope) : ""); }
     const mill = Math.floor(n / 1000000), r = n % 1000000;
-    return (mill === 1 ? "UN MILLÓN" : aLetras(mill) + " MILLONES") + (r ? " " + aLetras(r) : "");
+    return (mill === 1 ? "UN MILLÓN" : aLetras(mill, true) + " MILLONES") + (r ? " " + aLetras(r, apocope) : "");
   };
-  return `${aLetras(entero)} PESOS ${String(cents).padStart(2, "0")}/100 M.N.`;
+  // Gramática: "UN PESO" (singular), y millones exactos llevan "DE" (UN MILLÓN DE PESOS).
+  const palabraPesos = entero === 1 ? "PESO" : "PESOS";
+  const millonExacto = entero >= 1000000 && entero % 1000000 === 0;
+  return `${aLetras(entero, true)}${millonExacto ? " DE" : ""} ${palabraPesos} ${String(cents).padStart(2, "0")}/100 M.N.`;
 }
 
 // Hash SHA-256 de un PIN (con sal fija). Los PINs de admin/dueño/finanzas se
@@ -1009,6 +1013,87 @@ const CATEGORIAS_APARTE = ["Corona", "Grano", "Deshecho/segunda", "Pata de perro
 const CALIBRES_AJO = [...CALIBRES_CORRIDA, ...CATEGORIAS_APARTE, "Otro"];
 // Muestra el calibre legible: "7" → "Cal. 7", pero deja "Otro" tal cual.
 const labelCalibre = (c) => (c && c !== "Otro" && /^\d+$/.test(String(c))) ? `Cal. ${c}` : (c || "—");
+
+/* ══════════════ GRÁFICAS SVG LIGERAS (sin librerías, funcionan offline) ══════════════ */
+// Barras horizontales: comparar categorías (parcelas, cultivos, defectos).
+function GraficaBarras({ datos, unidad = "", color = "var(--accent)", maxBarras = 8, formato = fmtN }) {
+  const items = (datos || []).filter(d => (d.valor || 0) > 0).slice(0, maxBarras);
+  if (!items.length) return null;
+  const max = Math.max(...items.map(d => d.valor));
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+      {items.map((d, i) => (
+        <div key={i}>
+          <div className="flex-b text-xs" style={{ marginBottom: 2 }}>
+            <span className="text-muted" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "62%" }}>{d.label}</span>
+            <span style={{ fontWeight: 700 }}>{formato(d.valor)}{unidad}</span>
+          </div>
+          <div style={{ height: 8, borderRadius: 6, background: "rgba(255,255,255,.06)" }}>
+            <div style={{ height: "100%", borderRadius: 6, width: `${(d.valor / max) * 100}%`, background: d.color || color, transition: "width .3s" }} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+// Barras dobles por categoría (ej. ingresos vs egresos por mes).
+function GraficaBarrasPar({ items, leyendaA = "A", leyendaB = "B", colorA = "var(--safe)", colorB = "var(--red)", formato = fmt }) {
+  const filas = (items || []).filter(x => (x.a || 0) > 0 || (x.b || 0) > 0);
+  if (!filas.length) return null;
+  const max = Math.max(...filas.map(x => Math.max(x.a || 0, x.b || 0)));
+  return (
+    <div>
+      <div className="flex-b text-xs" style={{ marginBottom: 8 }}>
+        <span><span style={{ display: "inline-block", width: 9, height: 9, borderRadius: 3, background: colorA, marginRight: 5 }} />{leyendaA}</span>
+        <span><span style={{ display: "inline-block", width: 9, height: 9, borderRadius: 3, background: colorB, marginRight: 5 }} />{leyendaB}</span>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+        {filas.map((x, i) => (
+          <div key={i}>
+            <div className="text-xs text-muted" style={{ marginBottom: 2 }}>{x.label}</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
+              <div style={{ flex: 1, height: 8, borderRadius: 6, background: "rgba(255,255,255,.06)" }}>
+                <div style={{ height: "100%", borderRadius: 6, width: `${max > 0 ? ((x.a || 0) / max) * 100 : 0}%`, background: colorA }} />
+              </div>
+              <span className="text-xs" style={{ fontWeight: 700, minWidth: 64, textAlign: "right" }}>{formato(x.a || 0)}</span>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <div style={{ flex: 1, height: 8, borderRadius: 6, background: "rgba(255,255,255,.06)" }}>
+                <div style={{ height: "100%", borderRadius: 6, width: `${max > 0 ? ((x.b || 0) / max) * 100 : 0}%`, background: colorB }} />
+              </div>
+              <span className="text-xs" style={{ fontWeight: 700, minWidth: 64, textAlign: "right" }}>{formato(x.b || 0)}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+// Línea con puntos: series en el tiempo (ritmo por corte, % de bueno por muestreo).
+function GraficaLinea({ puntos, unidad = "", color = "var(--accent)", alto = 110, min: minProp, max: maxProp, formato = (v) => fmtN(v) }) {
+  const pts = (puntos || []).filter(p => p.y != null && isFinite(p.y)).slice(-10);
+  if (pts.length < 2) return null;
+  const W = 320, H = alto, padX = 14, padY = 18;
+  const ys = pts.map(p => p.y);
+  const yMin = minProp != null ? minProp : Math.min(...ys);
+  const yMax = maxProp != null ? maxProp : Math.max(...ys);
+  const rango = (yMax - yMin) || 1;
+  const x = i => padX + (pts.length > 1 ? (i / (pts.length - 1)) : 0) * (W - padX * 2);
+  const y = v => H - padY - ((v - yMin) / rango) * (H - padY * 2);
+  const path = pts.map((p, i) => `${i === 0 ? "M" : "L"}${x(i).toFixed(1)},${y(p.y).toFixed(1)}`).join(" ");
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: "auto", display: "block" }}>
+      <path d={path} fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.9" />
+      {pts.map((p, i) => (
+        <g key={i}>
+          <circle cx={x(i)} cy={y(p.y)} r="3.5" fill={color} />
+          <text x={x(i)} y={y(p.y) - 7} textAnchor="middle" fontSize="9.5" fill="#EAF2DC" fontWeight="700">{formato(p.y)}{unidad}</text>
+          {p.x != null && <text x={x(i)} y={H - 4} textAnchor="middle" fontSize="8.5" fill="#7A9A60">{p.x}</text>}
+        </g>
+      ))}
+    </svg>
+  );
+}
 
 // Cantidad total cosechada de una parcela: suma de registros + ajustes
 function totalCosecha(cos) {
@@ -1733,7 +1818,7 @@ const TABLAS_NUBE = [
   "inventario","actividades","cosechas","aplicaciones","ingresos",
   "egresos","compras","entradas_inv","tareas","bonificaciones",
   "incidencias","prestamos","cajachica","creditos","proveedores",
-  "ciclos","asistencia","envios_bodega","solicitudes_compra","bitacora","avances_fase","embarques","terminados","corridas","estibas","config_seguridad","config_emisor","control_corrida",
+  "ciclos","asistencia","envios_bodega","solicitudes_compra","bitacora","avances_fase","embarques","terminados","corridas","estibas","config_seguridad","config_emisor","control_corrida","config_contpaqi",
 ];
 
 function useOffline() {
@@ -7507,85 +7592,6 @@ function GestionCiclos({ data, add, upd, del, onClose }) {
     </div>
   );
 }
-
-/* ════════════ ASISTENCIA — ENCARGADO / ADMIN ════════════ */
-function GestionAsistencia({ data, add, upd, del, session, onClose }) {
-  const [fecha, setFecha] = useState(today());
-  const asistenciaDia = (data.asistencia || []).filter(a => a.fecha === fecha);
-  const estadoDe = tid => asistenciaDia.find(a => a.trabajadorId === tid);
-
-  const marcar = (tid, presente) => {
-    const ya = estadoDe(tid);
-    if (ya) {
-      upd("asistencia", { ...ya, presente });
-    } else {
-      add("asistencia", { id: `as${Date.now()}${Math.floor(Math.random() * 999)}`, fecha, trabajadorId: tid, presente, registradoPor: session.id });
-    }
-  };
-
-  // Resumen del mes en curso
-  const mesActualStr = today().slice(0, 7);
-  const resumenMes = data.trabajadores.map(t => {
-    const dias = (data.asistencia || []).filter(a => a.trabajadorId === t.id && a.fecha.slice(0, 7) === mesActualStr && a.presente).length;
-    return { t, dias };
-  });
-
-  const presentes = asistenciaDia.filter(a => a.presente).length;
-
-  return (
-    <div>
-      <div className="top-bar">
-        <button className="btn-ghost" onClick={onClose}>‹</button>
-        <h2>Asistencia 📅</h2>
-      </div>
-      <div className="section-pad">
-        <div className="form-group">
-          <label className="form-label">Fecha</label>
-          <input type="date" className="inp" value={fecha} onChange={e => setFecha(e.target.value)} max={today()} />
-        </div>
-        <div className="stat-row">
-          <div className="stat-card"><div className="stat-label">Presentes hoy</div><div className="stat-val" style={{ color: "var(--safe)" }}>{presentes}</div></div>
-          <div className="stat-card"><div className="stat-label">De un total de</div><div className="stat-val">{data.trabajadores.length}</div></div>
-        </div>
-        <div className="card">
-          <div className="card-title">Pase de lista — {fecha}</div>
-          {data.trabajadores.length === 0 && <div className="text-muted text-sm">Sin trabajadores registrados</div>}
-          {data.trabajadores.map(t => {
-            const est = estadoDe(t.id);
-            return (
-              <div key={t.id} className="list-item">
-                <div className="li-icon">👷</div>
-                <div className="li-body">
-                  <div className="li-title">{t.nombre}</div>
-                  <div className="li-sub">{t.categoria} · {fmt(t.sueldo_dia)}/día</div>
-                </div>
-                <div style={{ display: "flex", gap: 6 }}>
-                  <button className={`btn btn-sm${est && est.presente ? " btn-accent" : " btn-outline"}`} style={{ width: "auto", padding: "8px 12px" }} onClick={() => marcar(t.id, true)}>✓</button>
-                  <button className={`btn btn-sm${est && !est.presente ? " btn-danger" : " btn-outline"}`} style={{ width: "auto", padding: "8px 12px" }} onClick={() => marcar(t.id, false)}>✕</button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-        <div className="card">
-          <div className="card-title">Días trabajados este mes</div>
-          <div className="text-xs text-muted mb-3">Útil para calcular la nómina del mes en curso</div>
-          {resumenMes.map(({ t, dias }) => (
-            <div key={t.id} className="list-item">
-              <div className="li-body">
-                <div className="li-title">{t.nombre}</div>
-                <div className="li-sub">{dias} día(s) · {fmt(t.sueldo_dia)}/día</div>
-              </div>
-              <div className="li-right"><div className="li-val">{fmt(dias * t.sueldo_dia)}</div><div className="li-val-sub">acumulado</div></div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ════════════ RESUMEN SEMANAL — ADMIN ════════════ */
 function ResumenSemanal({ data, onClose }) {
   const hoy = new Date();
   const hace7 = new Date(hoy.getTime() - 7 * 86400000).toISOString().slice(0, 10);
@@ -7672,6 +7678,44 @@ function ResumenSemanal({ data, onClose }) {
             ))}
           </div>
         )}
+
+        {/* Panorama de meses: ingresos vs gastos, para ver la película completa */}
+        {(() => {
+          const porMes = {};
+          const mesDe = f => (f || "").slice(0, 7);
+          (data.ingresos || []).forEach(g => { const m = mesDe(g.fecha); if (!m) return; if (!porMes[m]) porMes[m] = { a: 0, b: 0 }; porMes[m].a += g.monto || 0; });
+          (data.egresos || []).forEach(e => { const m = mesDe(e.fecha); if (!m) return; if (!porMes[m]) porMes[m] = { a: 0, b: 0 }; porMes[m].b += e.monto || 0; });
+          (data.actividades || []).forEach(a => { const m = mesDe(a.fecha); if (!m) return; if (!porMes[m]) porMes[m] = { a: 0, b: 0 }; porMes[m].b += costoActividad(a); });
+          const MESES = ["", "Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+          const items = Object.entries(porMes).sort((x, y) => x[0].localeCompare(y[0])).slice(-6)
+            .map(([m, v]) => ({ label: `${MESES[parseInt(m.slice(5), 10)] || m.slice(5)} ${m.slice(2, 4)}`, ...v }));
+          if (items.length < 2) return null;
+          return (
+            <div className="card">
+              <div className="card-title">📊 Ingresos vs gastos por mes</div>
+              <GraficaBarrasPar items={items} leyendaA="Ingresos" leyendaB="Gastos (egresos + actividades)" />
+            </div>
+          );
+        })()}
+
+        {/* Costo por cultivo: dónde se está yendo el dinero de trabajo */}
+        {(() => {
+          const porCultivo = {};
+          (data.actividades || []).forEach(a => {
+            const s = (data.siembras || []).find(x => x.id === a.siembraId);
+            const c = s?.cultivoNombre || "Sin cultivo ligado";
+            porCultivo[c] = (porCultivo[c] || 0) + costoActividad(a);
+          });
+          const datos = Object.entries(porCultivo).map(([label, valor]) => ({ label, valor: Math.round(valor) })).sort((a, b) => b.valor - a.valor);
+          if (!datos.some(d => d.valor > 0) || datos.length < 2) return null;
+          return (
+            <div className="card">
+              <div className="card-title">🌾 Costo de trabajo por cultivo</div>
+              <div className="text-xs text-muted mb-2">Todo lo gastado en actividades, agrupado por cultivo (histórico completo).</div>
+              <GraficaBarras datos={datos} formato={fmt} />
+            </div>
+          );
+        })()}
 
         <div className="card" style={{ background: "rgba(126,200,50,.04)", border: "1px solid rgba(126,200,50,.15)" }}>
           <div className="text-xs text-muted">Este resumen cubre los últimos 7 días. Para el resultado de toda una temporada, usa el módulo Temporadas.</div>
@@ -12455,6 +12499,17 @@ function CorridaAjo({ data, add, upd, session, onClose }) {
     });
     setRendTramo(Object.fromEntries(calibresNum.map(c => [c, 0])));
     setContadorTramo(Object.fromEntries(calibresNum.map(c => [c, 0])));
+    // Deducción automática (3ª forma de conteo): SOLO si la tarima quedó físicamente
+    // vacía. Si Migue nada más deja de correr de ella (le quedan cajas), se queda en
+    // la mesa con su saldo y no se registra nada.
+    const quedoVacia = window.confirm(`¿La tarima ${estibaOrigen.codigo} quedó completamente VACÍA?\n\nAceptar = sí, se vació (la app recalibra la proporción sola).\nCancelar = aún le quedan cajas (sigue en la mesa).`);
+    if (quedoVacia) {
+      const restoMesa = tarimasPool.filter(e => e.id !== estibaOrigen.id).reduce((sm, e) => sm + saldoDe(e), 0);
+      const cartonAcumAhora = calibresNum.reduce((sm, c) => sm + (contador[c] || 0), 0) + estibasCerradas.reduce((sm, e) => sm + (e.cajas || 0), 0);
+      setConteos(cs => [...cs, { id: `cf${Date.now()}`, hora: horaActual, limpioQueda: restoMesa, cartonAcum: cartonAcumAhora, auto: true }]);
+      setPoolIds(ids => ids.filter(x => x !== estibaOrigen.id));
+      upd("estibas", { ...estibaOrigen, saldo: 0, estado: "consumida" });
+    }
     setEstibaOrigenId(""); // queda en blanco: no obliga a poner otra
   };
 
@@ -12493,9 +12548,25 @@ function CorridaAjo({ data, add, upd, session, onClose }) {
   };
 
   // Pool: agregar/quitar tarimas "de la mesa". Las del pool son las que Migue dejó
-  // disponibles para ir tomando. Quitar la activa no se permite si tiene tramo a medias.
+  // disponibles para ir tomando. El LIMPIO ENTRA A LA CORRIDA cuando la tarima entra
+  // a la mesa (evento de plástico con hora) — así el reloj y el panel En Vivo funcionan
+  // igual en modo preciso y en revoltura. Al quitarla sin haberla corrido, se retira.
   const toggleEnPool = (id) => {
-    setPoolIds(ids => ids.includes(id) ? ids.filter(x => x !== id) : [...ids, id]);
+    const est = (data.estibas || []).find(e => e.id === id);
+    setPoolIds(ids => {
+      if (ids.includes(id)) {
+        // Sale de la mesa: retirar su evento de limpio SOLO si no se ha corrido de ella.
+        const seUso = (estibaOrigenId === id) || tramos.some(t => t.estibaId === id);
+        if (!seUso) setPlasticoEventos(ev => ev.filter(e => e.estibaId !== id));
+        return ids.filter(x => x !== id);
+      }
+      // Entra a la mesa: registrar su limpio como evento (si no existía ya).
+      if (est) {
+        setPlasticoEventos(ev => ev.some(e => e.estibaId === id) ? ev
+          : [...ev, { id: `pe${Date.now()}`, hora: horaActual, cajas: saldoDe(est), nota: est.codigo, estibaId: id }]);
+      }
+      return [...ids, id];
+    });
   };
   // Tarimas del pool con su saldo (las que siguen activas y con cajas).
   const tarimasPool = poolIds
@@ -12520,6 +12591,10 @@ function CorridaAjo({ data, add, upd, session, onClose }) {
       totalNeto: cerradas.reduce((s, e) => s + e.neto, 0),
       // Cajas contadas sin estiba (ya descontadas del saldo de su tarima al terminar el día).
       cajasSueltas: extra.cajasSueltas || 0,
+      // Monitoreo en vivo (para que el análisis del día viaje a la nube):
+      plasticoEventos: plasticoOrden, cortes: lecturasOrden, conteosFisicos: conteosOrden,
+      ritmoFinal: ritmoActual, metaDia: parseFloat(metaDia) || 0,
+      rateCartonFinal: Number(rateCarton.toFixed(3)), propCartonPorPlasticoFinal: Number(propCartonPorPlastico.toFixed(3)),
       estado: extra.estado || "abierta",
       registradoPor: { rol: session.role, id: session.id, nombre: session.nombre },
     });
@@ -12537,8 +12612,8 @@ function CorridaAjo({ data, add, upd, session, onClose }) {
     Object.values(aportesPrevios).forEach(arr => (arr || []).forEach(ap => ap.id && idsUsadas.add(ap.id)));
     const tarimas = [...idsUsadas].map(id => {
       const e = (data.estibas || []).find(x => x.id === id);
-      return e ? { id, codigo: e.codigo, saldoActual: e.saldo != null ? e.saldo : e.cajas } : null;
-    }).filter(Boolean);
+      return e ? { id, codigo: e.codigo, saldoActual: e.saldo != null ? e.saldo : e.cajas, estado: e.estado } : null;
+    }).filter(Boolean).filter(t => !(t.estado === "consumida" && t.saldoActual <= 0)); // las ya deducidas como vacías no se preguntan de nuevo
     if (tarimas.length === 0) {
       // No se usó ninguna tarima registrada: solo guardar el reporte del día.
       if (!window.confirm("¿Terminar la corrida del día? El reporte queda registrado.")) return;
@@ -12814,6 +12889,17 @@ function CorridaAjo({ data, add, upd, session, onClose }) {
               </div>
             )}
             <div className="form-group" style={{ marginTop: 8, marginBottom: 0 }}><label className="form-label">Meta del día (cajas cartón)</label><input type="number" className="inp" placeholder="0" value={metaDia} onChange={e => setMetaDia(e.target.value)} /></div>
+            {plasticoOrden.length > 0 && (
+              <div style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid rgba(255,255,255,.08)" }}>
+                <div className="text-xs text-muted" style={{ marginBottom: 3 }}>Limpio que ha entrado ({fmtN(plasticoTotal)} cajas):</div>
+                {plasticoOrden.map((e, i) => (
+                  <div key={e.id} className="flex-b text-xs" style={{ padding: "2px 0" }}>
+                    <span className="text-muted">{i === 0 ? "🟢" : "➕"} {e.hora}{e.nota ? ` · ${e.nota}` : ""}</span>
+                    <span>{fmtN(e.cajas)} <button className="btn-ghost text-xs" style={{ color: "var(--red)" }} onClick={() => borrarPlastico(e.id)}>🗑</button></span>
+                  </div>
+                ))}
+              </div>
+            )}
             {lecturasOrden.length > 0 && (
               <div style={{ marginTop: 8 }}>
                 {lecturasOrden.map((l, i) => (
@@ -12822,6 +12908,22 @@ function CorridaAjo({ data, add, upd, session, onClose }) {
                     <span>{fmtN(l.total)} cajas <button className="btn-ghost text-xs" style={{ color: "var(--red)" }} onClick={() => borrarCorte(l.id)}>🗑</button></span>
                   </div>
                 ))}
+                {/* Gráfica: cajas/min entre cortes (cómo va el ritmo a lo largo del día) */}
+                {(() => {
+                  const serie = lecturasOrden.map((l, i) => {
+                    if (i === 0) return null;
+                    const prev = lecturasOrden[i - 1];
+                    const m = minDeHora(l.hora) - minDeHora(prev.hora);
+                    return m > 0 ? { x: l.hora, y: Number(((l.total - prev.total) / m).toFixed(2)) } : null;
+                  }).filter(Boolean);
+                  if (serie.length < 2) return null;
+                  return (
+                    <div style={{ marginTop: 10 }}>
+                      <div className="text-xs text-muted" style={{ marginBottom: 2 }}>📈 Cartón/min por corte:</div>
+                      <GraficaLinea puntos={serie} min={0} />
+                    </div>
+                  );
+                })()}
               </div>
             )}
           </div>
@@ -12947,6 +13049,8 @@ function CorridaAjo({ data, add, upd, session, onClose }) {
                       registradoPor: { rol: session.role, id: session.id, nombre: session.nombre },
                     });
                     setPoolIds(ids => [...ids, nueva.id]);
+                    // Su limpio entra a la corrida de inmediato (evento con hora).
+                    setPlasticoEventos(ev => [...ev, { id: `pe${Date.now()}`, hora: horaActual, cajas: cj, nota: `${nueva.codigo || "alta rápida"}`, estibaId: nueva.id }]);
                     setAltaRapida(null);
                   }}>Meter a la mesa</button>
                 </div>
@@ -13158,6 +13262,28 @@ function CorridaAjo({ data, add, upd, session, onClose }) {
                 </table>
               </div>
             )}
+            {/* Gráficas de calidad: % de bueno en el tiempo + defectos más comunes */}
+            {muestreos.length >= 2 && (
+              <div className="card">
+                <div className="card-title">📉 Calidad en el tiempo</div>
+                <GraficaLinea
+                  puntos={[...muestreos].reverse().map(m => ({ x: m.hora || (m.fecha || "").slice(5), y: Number(((m.pctBueno || 0) * 100).toFixed(1)) }))}
+                  unidad="%" min={0} max={100} formato={(v) => v.toFixed(0)}
+                />
+                {(() => {
+                  const def = { Abierto: 0, Calavereado: 0, Hongo: 0 };
+                  muestreos.forEach(m => { def.Abierto += parseFloat(m.abierto) || 0; def.Calavereado += parseFloat(m.calavereado) || 0; def.Hongo += parseFloat(m.hongo) || 0; });
+                  const datos = Object.entries(def).map(([label, valor]) => ({ label, valor })).sort((a, b) => b.valor - a.valor);
+                  if (!datos.some(d => d.valor > 0)) return null;
+                  return (
+                    <div style={{ marginTop: 12 }}>
+                      <div className="text-xs text-muted" style={{ marginBottom: 6 }}>Defectos más comunes (cabezas, últimos {muestreos.length} muestreos):</div>
+                      <GraficaBarras datos={datos} color="var(--red)" unidad="" />
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
           </>
         )}
 
@@ -13231,6 +13357,15 @@ function CorridaAjo({ data, add, upd, session, onClose }) {
                   </table>
                 );
               })()}
+              {/* Distribución visual por calibre */}
+              {(() => {
+                const calibreEstibas = (data.estibas || []).filter(e => e.fase === "calibre" && e.estado === "activa");
+                const porCal = {};
+                calibreEstibas.forEach(e => { const c = e.calibre || "?"; porCal[c] = (porCal[c] || 0) + saldoDe(e); });
+                const datos = Object.entries(porCal).map(([c, v]) => ({ label: labelCalibre(c), valor: Math.round(v) })).sort((a, b) => b.valor - a.valor);
+                if (datos.length < 2) return null;
+                return <div style={{ marginTop: 12 }}><div className="text-xs text-muted" style={{ marginBottom: 6 }}>¿Qué calibre domina el inventario?</div><GraficaBarras datos={datos} unidad=" cajas" /></div>;
+              })()}
             </div>
             <div className="card">
               <div className="card-title">🏷️ Tarimas de limpio disponibles</div>
@@ -13254,6 +13389,28 @@ function CorridaAjo({ data, add, upd, session, onClose }) {
                 ));
               })()}
             </div>
+            {/* Controles de productividad capturados con la versión anterior del módulo
+                "Control de corrida". Los datos siguen en la nube; aquí se consultan. */}
+            {(() => {
+              const viejos = (data.control_corrida || []).filter(c => c.tipo === "productividad").sort((a, b) => (b.fecha || "").localeCompare(a.fecha || ""));
+              if (!viejos.length) return null;
+              return (
+                <div className="card">
+                  <div className="card-title">📈 Controles de corrida guardados</div>
+                  <div className="text-xs text-muted mb-2">Capturados con la versión anterior. Se conservan como consulta.</div>
+                  {viejos.map(v => {
+                    const lects = v.lecturas || [];
+                    const tot = lects.length ? (lects[lects.length - 1].total || 0) : 0;
+                    return (
+                      <div key={v.id} className="flex-b" style={{ padding: "6px 0", borderTop: "1px solid rgba(255,255,255,.06)" }}>
+                        <span className="text-sm">{v.fecha} · {v.parcela || "sin parcela"}</span>
+                        <span className="text-sm text-muted">{fmtN(tot)} cajas · {lects.length} lecturas</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
           </>
         )}
       </div>
@@ -14280,6 +14437,19 @@ function RendimientoParcelas({ data, onClose }) {
         {filas.length === 0 && (
           <div className="text-muted text-sm" style={{ textAlign: "center", padding: "32px 0" }}>
             Aún no hay corridas con parcela de origen. Conforme Migue corra ajo ligando la estiba de origen, esto se llena solo.
+          </div>
+        )}
+        {/* Comparativa visual: qué parcela produce más (kg) de un vistazo */}
+        {filas.length >= 2 && (
+          <div className="card">
+            <div className="card-title">🏆 Comparativa de parcelas</div>
+            <GraficaBarras datos={filas.map(f => ({ label: f.nombre, valor: Math.round(f.kg) }))} unidad=" kg" />
+            {filas.some(f => f.kgHa > 0) && (
+              <div style={{ marginTop: 12 }}>
+                <div className="text-xs text-muted" style={{ marginBottom: 6 }}>Rendimiento por hectárea (kg/ha) — la comparación justa:</div>
+                <GraficaBarras datos={filas.filter(f => f.kgHa > 0).sort((a, b) => b.kgHa - a.kgHa).map(f => ({ label: f.nombre, valor: Math.round(f.kgHa) }))} unidad=" kg/ha" color="var(--gold)" />
+              </div>
+            )}
           </div>
         )}
         {filas.map(f => {
