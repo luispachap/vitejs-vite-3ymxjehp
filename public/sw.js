@@ -1,6 +1,10 @@
 // Service worker: red primero, cae a caché si no hay conexión.
-const CACHE = "agrogestion-v1";
-self.addEventListener("install", e => self.skipWaiting());
+const CACHE = "agrogestion-v2";
+const PRECACHE = ["/fonts/ms-icons.woff2"]; // la fuente de iconos SIEMPRE en caché (offline)
+self.addEventListener("install", e => {
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(PRECACHE)).catch(() => {}));
+  self.skipWaiting();
+});
 self.addEventListener("activate", e => e.waitUntil(self.clients.claim()));
 self.addEventListener("fetch", e => {
   if (e.request.method !== "GET") return;

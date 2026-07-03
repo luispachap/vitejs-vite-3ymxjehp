@@ -37,16 +37,48 @@ const MS_ICONS = {
   "🌦": "partly_cloudy_day", "👍": "thumb_up", "☑": "check_box", "🔀": "shuffle",
   "🧮": "calculate", "🏆": "trophy", "📱": "smartphone", "🌱": "potted_plant",
 };
+// Codepoint de cada icono (la fuente local se subseteó con exactamente estos 98).
+const MS_CP = {account_balance: "\ue84f", add: "\ue145", agriculture: "\uea79", alarm: "\ue855", apartment: "\uea40", arrow_downward: "\ue5db", arrow_upward: "\ue5d8", assignment: "\ue85d", attach_money: "\ue227", auto_awesome: "\ue65f", balance: "\ueaf6", biotech: "\uea3a", bolt: "\uea0b", build: "\uf8cd", calculate: "\uea5f", calendar_month: "\uebcc", chat: "\ue0c9", check_box: "\ue9de", check_circle: "\uf0be", close: "\ue5cd", cloud_upload: "\ue2c3", construction: "\uea3c", cottage: "\ue587", delete: "\ue92e", description: "\ue873", directions_bus: "\ueff6", download: "\uf090", draft: "\ue674", eco: "\uea35", edit_note: "\ue745", edit_square: "\uf88d", engineering: "\uea3d", explore: "\ue87a", factory: "\uebbc", flag: "\uf0c6", genetics: "\ue0f3", grass: "\uf205", groups: "\uf233", health_and_safety: "\ue1d5", home_repair_service: "\uf100", hourglass_top: "\uea5b", info: "\ue88e", install_mobile: "\uf2cd", inventory_2: "\ue1a1", lightbulb: "\ue90f", link: "\ue250", local_gas_station: "\ue546", local_shipping: "\ue558", location_on: "\uf1db", lock: "\ue899", mail: "\ue159", map: "\ue55b", menu_book: "\uea19", mobile_off: "\ue201", monitoring: "\uf190", newspaper: "\ueb81", notifications_active: "\ue7f7", partly_cloudy_day: "\uf172", payments: "\uef63", person: "\uf0d3", photo_camera: "\ue412", play_arrow: "\ue037", potted_plant: "\uf8aa", print: "\ue8ad", receipt: "\ue8b0", receipt_long: "\uef6e", recycling: "\ue760", redeem: "\ue8f6", sanitizer: "\uf21d", satellite_alt: "\ueb3a", save: "\ue161", savings: "\ue2eb", science: "\uea4b", search: "\uef7a", sell: "\uf05b", settings: "\ue8b8", shopping_cart: "\ue8cc", shuffle: "\ue043", smart_toy: "\uf06c", smartphone: "\ue7ba", space_dashboard: "\ue66b", star: "\uf09a", storefront: "\uea12", straighten: "\ue41c", sync: "\ue627", target: "\ue719", thumb_up: "\uf577", timer: "\ue425", trending_down: "\ue8e3", trophy: "\uea23", undo: "\ue166", upload: "\uf09b", visibility: "\ue8f4", warehouse: "\uebb8", warning: "\uf083", water_drop: "\ue798", work: "\ue943", workspace_premium: "\ue7af"};
+/* Iconos con fuente LOCAL (va dentro de la app, ~11KB): funcionan online y offline.
+   El @font-face vive en el CSS y el service worker la deja en caché. Se fuerza la
+   carga con fonts.load() al arrancar; mientras tanto (milisegundos) se ve el emoji. */
+let __msFontLista = false;
+const __msSubs = new Set();
+function __msMarcarLista() {
+  if (__msFontLista) return;
+  __msFontLista = true;
+  __msSubs.forEach(f => f()); __msSubs.clear();
+}
+if (typeof window !== "undefined") {
+  try {
+    if (document.fonts && document.fonts.load) {
+      // load() FUERZA la descarga de la fuente aunque nada la use todavía
+      // (con archivo local + precache del SW, esto tarda milisegundos).
+      document.fonts.load('16px "Material Symbols Rounded"').then(fs => { if (fs && fs.length) __msMarcarLista(); });
+      document.fonts.ready.then(() => { try { if (document.fonts.check('16px "Material Symbols Rounded"')) __msMarcarLista(); } catch { /* ignorar */ } });
+    }
+  } catch { /* navegador viejo: quedan los emojis */ }
+}
 function Ic({ e, style }) {
+  const [, refrescar] = useState(0);
+  useEffect(() => {
+    if (__msFontLista) return;
+    const cb = () => refrescar(x => x + 1);
+    __msSubs.add(cb);
+    return () => { __msSubs.delete(cb); };
+  }, []);
   if (e == null || typeof e !== "string") return e ?? null;
   const name = MS_ICONS[e.trim().replace(/\uFE0F/g, "")];
-  if (!name) return e;
-  return <span className="ms-ic" style={style}>{name}</span>;
+  const ch = name && MS_CP[name];
+  if (!ch) return e;
+  if (!__msFontLista) return e; // instante inicial: emoji, nunca símbolo roto
+  return <span className="ms-ic" style={style}>{ch}</span>;
 }
 
 
 /* ════════════ ESTILOS ════════════ */
 const CSS = `
+@font-face{font-family:'Material Symbols Rounded';src:url('/fonts/ms-icons.woff2') format('woff2');font-weight:400;font-style:normal;font-display:block;}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 html,body,#root{height:100%;}
 html{font-size:16px;}
@@ -2288,7 +2320,7 @@ function AppInner() {
       const l = document.createElement("link");
       l.id = "agro-fonts";
       l.rel = "stylesheet";
-      l.href = "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Nunito:wght@400;600;700;800&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,400..700,0..1,0&display=swap";
+      l.href = "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Nunito:wght@400;600;700;800&display=swap";
       document.head.appendChild(l);
     } catch {}
   }, []);
