@@ -1,0 +1,22 @@
+; ============================================================
+; AGENTE P&A ↔ CONTPAQ · copie este archivo como config.ini
+; ============================================================
+[sqlserver]
+servidor = localhost\COMPAC        ; instancia típica de CONTPAQi
+usuario  = lector_pya              ; el de crear_usuario_lectura.sql
+password = CAMBIE-ESTA-CLAVE-Fuerte-2026!
+driver   = ODBC Driver 17 for SQL Server
+
+[api]
+url   = https://www.pafirma.com
+token = PEGUE-AQUI-EL-MISMO-TOKEN-QUE-EN-RENDER   ; AGENTE_CONTPAQ_TOKEN
+
+; Una sección por empresa. El RFC conecta con el cliente del sistema.
+[empresa:Grupo Norte]
+rfc             = GNO120101AB1
+bd_contabilidad = ctGRUPONORTE     ; nombre real: véalo con --descubrir
+bd_nomina       = nomGRUPONORTE
+; bd_add        = adGRUPONORTE     ; XML timbrados (fuente "lo facturado real")
+coeficiente_utilidad = 0.10        ; solo PM régimen general (su papel de trabajo)
+; tasa_isn      = 3.0              ; opcional (default Zacatecas 3%)
+; prima_riesgo  = 0.54355          ; opcional (la que el IMSS asignó a la empresa)

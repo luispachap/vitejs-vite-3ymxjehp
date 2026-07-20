@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pacheco &amp; Aparicio · Portal de clientes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&family=Public+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --azul:#0A5AA1;--azul-h:#08477F;--azul-suave:#EEF4FB;
+  --marino:#0A1C33;--papel:#F6F6F3;--tarjeta:#FFFFFF;--borde:#E4E7ED;
+  --tinta:#111826;--gris:#5C6879;--gris2:#8A93A6;
+  --rojo:#B4362A;--ambar:#96690A;--verde:#167A46;
+}
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--papel);color:var(--tinta);font-family:'Public Sans',system-ui,sans-serif;
+-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+a{color:var(--azul);text-decoration:none}a:hover{color:var(--azul-h)}
+::selection{background:var(--azul);color:#fff}
+:focus-visible{outline:2px solid var(--azul);outline-offset:2px}
+input,select,textarea,button{font-family:'Public Sans',system-ui,sans-serif}
+.serif{font-family:'Libre Caslon Text',Georgia,serif}
+.tnum{font-variant-numeric:tabular-nums}
+.micro{font-size:11px;letter-spacing:.3em;text-transform:uppercase;font-weight:700;color:var(--azul)}
+.pildora{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.06em;
+padding:2.5px 8px;border-radius:99px;background:var(--azul-suave);color:var(--azul);
+text-transform:uppercase;vertical-align:middle}
+.pildora.ambar{background:var(--ambar-suave);color:var(--ambar)}
+.pildora.verde{background:var(--verde-suave);color:var(--verde)}
+.pildora.roja{background:var(--rojo-suave);color:var(--rojo)}
+.oculto{display:none!important}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;font-weight:600;
+font-size:14.5px;border-radius:9px;min-height:46px;padding:0 20px;border:none;cursor:pointer;
+transition:background .15s,border-color .15s,color .15s,transform .15s}
+.btn-azul{background:var(--azul);color:#fff}.btn-azul:hover{background:var(--azul-h)}
+.campo{width:100%;background:var(--tarjeta);color:var(--tinta);border:1px solid #D4D9E2;border-radius:9px;padding:13px 14px;font-size:15px;
+background:var(--tarjeta);color:var(--tinta);outline:none;transition:border-color .15s}
+.campo:focus{border-color:var(--azul);box-shadow:0 0 0 3px rgba(10,90,161,.14)}
+.etiqueta{display:block;font-size:13.5px;font-weight:600;margin-bottom:7px}
+.carta{background:var(--tarjeta);border:1px solid var(--borde);border-radius:14px}
+@keyframes girar{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+@keyframes aparecer{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.anillo{transform-origin:center;animation:girar 90s linear infinite}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+/* Login */
+.login{min-height:100vh;display:flex;flex-wrap:wrap-reverse;align-items:stretch}
+.login-marca{flex:1.1;min-width:300px;background:radial-gradient(ellipse 90% 70% at 15% -10%,rgba(10,90,161,.45),transparent 60%),var(--marino);
+color:#EEF3FA;display:flex;flex-direction:column;justify-content:space-between;gap:36px;padding:clamp(28px,5vw,60px)}
+.login-form{flex:1;min-width:300px;display:grid;place-items:center;padding:clamp(28px,5vw,60px) clamp(20px,4vw,48px)}
+/* Cabecera app */
+.cab{position:sticky;top:0;z-index:40;background:rgba(255,255,255,.94);backdrop-filter:blur(10px);border-bottom:1px solid var(--borde)}
+.cab-fila{max-width:1020px;margin:0 auto;padding:8px clamp(16px,4vw,32px);min-height:64px;
+display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 12px}
+.fila-doc{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:15px 20px;border-bottom:1px solid #EEF0F4}
+.fila-doc:last-child{border-bottom:none}
+.btn-descarga{display:inline-flex;align-items:center;gap:7px;min-height:40px;padding:0 12px;border:none;
+background:none;color:var(--azul);font-size:13.5px;font-weight:700;cursor:pointer}
+.btn-descarga:hover{color:var(--azul-h)}
+main.portal{width:100%;max-width:1020px;margin:0 auto;padding:0 clamp(16px,4vw,32px) 90px}
+.seccion{padding:clamp(48px,7vw,72px) 0;border-bottom:1px solid var(--borde)}
+</style>
+</head>
+<body>
+
+<!-- ============ LOGIN ============ -->
+<section id="vista-login" class="login">
+  <div class="login-marca">
+    <a href="/" style="display:inline-flex;align-items:center;gap:9px;color:#9FC2E4;font-size:13px;font-weight:600">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+      Volver al sitio</a>
+    <div>
+      <img src="/static/marca/monograma.png" alt="Monograma PA" style="height:64px;width:auto;display:block;margin-bottom:26px">
+      <p class="serif" style="margin:0;font-weight:700;font-size:clamp(28px,3.6vw,40px);line-height:1.15;color:#fff">Pacheco &amp; Aparicio</p>
+      <p style="margin:12px 0 0;font-size:11.5px;letter-spacing:.34em;text-transform:uppercase;color:#9FC2E4;font-weight:600">Consultoría · Jurídica · Fiscal</p>
+      <p style="margin:24px 0 0;max-width:400px;font-size:14.5px;line-height:1.7;color:rgba(238,243,250,.78)">Su información fiscal, siempre a la mano: estatus ante el SAT, impuestos del mes y su expediente completo, en un solo lugar.</p>
+    </div>
+    <p style="margin:0;font-size:13px;color:rgba(238,243,250,.55)">C.P. y Lic. Rodolfo Pacheco Ortega</p>
+  </div>
+  <div class="login-form">
+    <form id="form-login" style="width:100%;max-width:380px">
+      <h1 class="serif" style="margin:0;font-weight:700;font-size:26px;color:var(--marino)">Portal de clientes</h1>
+      <p style="margin:8px 0 30px;font-size:14px;color:var(--gris)">Acceso exclusivo para empresas del despacho.</p>
+      <label for="email" class="etiqueta">Correo</label>
+      <input id="email" type="email" required autocomplete="username" class="campo">
+      <label for="password" class="etiqueta" style="margin-top:18px">Contraseña</label>
+      <input id="password" type="password" required autocomplete="current-password" class="campo">
+      <p id="login-error" class="oculto" style="margin:16px 0 0;font-size:13px;font-weight:600;color:var(--rojo)"></p>
+      <button type="submit" class="btn btn-azul" style="margin-top:26px;width:100%;min-height:50px;font-size:15.5px">Entrar a mi portal</button>
+      <p style="margin:16px 0 0;font-size:12.5px;color:var(--gris2);text-align:center;line-height:1.6">
+        ¿Aún no tiene acceso? Comuníquese con el despacho<br>y con gusto le entregamos su contraseña.</p>
+      <p style="margin:22px 0 0;font-size:12.5px;line-height:1.6;color:var(--gris2);display:flex;gap:8px;align-items:flex-start">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0A5AA1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none;margin-top:2px"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        Sus documentos viajan cifrados y cada consulta queda registrada por su seguridad.</p>
+    </form>
+
+    <form id="form-cambio" class="oculto" style="width:100%;max-width:380px">
+      <h1 class="serif" style="margin:0;font-weight:700;font-size:26px;color:var(--marino)">Cree su contraseña</h1>
+      <p style="margin:10px 0 0;font-size:13px;color:var(--gris2);line-height:1.6">Piense en una frase fácil de recordar para usted y difícil de adivinar para los demás.</p>
+      <p style="margin:8px 0 26px;font-size:14px;color:var(--gris);line-height:1.6">
+        Entró con la contraseña temporal que le dio el despacho. Por su seguridad, defina ahora una propia.</p>
+      <label for="cp-nueva" class="etiqueta">Nueva contraseña (mínimo 10 caracteres)</label>
+      <input id="cp-nueva" type="password" class="campo" autocomplete="new-password">
+      <label for="cp-nueva2" class="etiqueta" style="margin-top:18px">Confírmela</label>
+      <input id="cp-nueva2" type="password" class="campo" autocomplete="new-password">
+      <p id="cp-msj" class="oculto" style="margin:16px 0 0;font-size:13px;font-weight:600"></p>
+      <button type="button" id="btn-cambiar" class="btn btn-azul" style="margin-top:26px;width:100%;min-height:50px;font-size:15.5px">Guardar y entrar</button>
+    </form>
+  </div>
+</section>
+
+<!-- ============ PORTAL ============ -->
+<section id="vista-portal" class="oculto" style="min-height:100vh;display:flex;flex-direction:column;animation:aparecer .35s ease">
+  <header class="cab">
+    <div class="cab-fila">
+      <div style="display:flex;align-items:center;gap:12px;min-width:0">
+        <img src="/static/marca/monograma.png" alt="" style="height:36px;width:auto">
+        <div style="line-height:1.2;min-width:0">
+          <p class="serif" style="margin:0;font-weight:700;font-size:15px;color:var(--marino)">Pacheco &amp; Aparicio</p>
+          <p id="cab-empresa" style="margin:0;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--gris);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></p>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:14px">
+        <span id="cab-periodo" class="tnum" style="font-size:13px;color:var(--gris)"></span>
+        <button id="btn-salir" style="display:inline-flex;align-items:center;gap:8px;min-height:40px;padding:0 14px;border:1px solid var(--borde);background:var(--tarjeta);color:var(--gris);font-size:13px;font-weight:600;border-radius:8px;cursor:pointer">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>
+          Salir</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="portal">
+
+    <!-- SEMÁFORO FISCAL -->
+    <section style="padding:clamp(44px,7vw,68px) 0 clamp(36px,5vw,48px);text-align:center">
+      <p class="micro" style="margin:0 0 26px">Semáforo fiscal de su empresa</p>
+      <div id="sello" style="width:216px;height:216px;margin:0 auto"></div>
+      <h1 id="semaforo-titulo" class="serif" style="margin:26px auto 0;max-width:560px;font-weight:700;font-size:clamp(26px,4.4vw,38px);line-height:1.22"></h1>
+      <p id="semaforo-sub" style="margin:12px 0 0;font-size:14.5px;color:var(--gris)"></p>
+      <div style="margin:34px auto 0;max-width:420px">
+        <div style="display:flex;justify-content:space-between;font-size:13.5px;margin-bottom:9px">
+          <span style="color:var(--gris)">Contabilidad del mes</span>
+          <span id="progreso-texto" class="tnum" style="font-weight:700;color:var(--marino)"></span>
+        </div>
+        <div style="height:7px;border-radius:99px;background:var(--borde);overflow:hidden">
+          <div id="progreso-barra" style="height:100%;border-radius:99px;background:linear-gradient(90deg,#0A5AA1,#0A1C33);width:0%;transition:width .6s ease"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ZONA EXPRESS -->
+    <section style="background:var(--marino);border-radius:18px;padding:clamp(24px,4vw,34px);color:#EEF3FA;box-shadow:0 24px 48px -24px rgba(10,28,51,.45)">
+      <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:20px">
+        <div style="min-width:220px">
+    <!-- SUS PAGOS DEL MES: cuánto pagar y con qué papel (SAT + IMSS + ISN) -->
+    <section id="seccion-pagos" style="padding:clamp(40px,6vw,60px) 0 0">
+      <p class="micro" style="margin:0">Sus pagos del mes</p>
+      <h2 class="serif" style="margin:14px 0 6px;font-weight:700;font-size:clamp(23px,3.4vw,30px);color:var(--marino)">Cuánto pagar y con qué papel</h2>
+      <p style="margin:0 0 22px;font-size:14px;color:var(--gris)">Cada tarjeta trae su formato de pago listo para descargar. Se le entrega siempre, sin condiciones.</p>
+
+      <!-- La tarjeta del SAT: el monto del mes con su desglose (dona) integrado -->
+      <div style="background:var(--tarjeta);border:1px solid var(--borde);border-radius:16px;padding:clamp(20px,3.4vw,28px);display:flex;flex-wrap:wrap;gap:clamp(20px,4vw,40px);align-items:center;margin-bottom:16px">
+        <div style="flex:1.2;min-width:min(100%,250px)">
+          <p class="micro" style="margin:0">Impuestos federales · SAT</p>
+          <p id="impuesto-total" class="serif tnum" style="margin:10px 0 0;font-weight:700;font-size:clamp(36px,5.4vw,48px);color:var(--marino);letter-spacing:-.01em">—</p>
+          <p id="impuesto-periodo" style="margin:4px 0 0;font-size:13px;color:var(--gris2)"></p>
+          <p id="sat-vence" class="oculto" style="margin:14px 0 0;font-size:13px;font-weight:700;color:var(--ambar)"></p>
+          <button id="btn-pago-sat" class="btn btn-azul oculto" style="margin-top:14px;min-height:48px;font-size:13.5px">Descargar formato de pago</button>
+          <div id="sat-comprobante" class="oculto" style="margin-top:12px">
+            <p id="sat-pagado" class="oculto" style="margin:0;font-size:13px;font-weight:700;color:var(--verde)"></p>
+            <div id="sat-subir-zona">
+              <p style="margin:0 0 6px;font-size:12.5px;color:var(--gris)">¿Ya lo pagó? Envíenos su comprobante y queda registrado al momento.</p>
+              <div style="display:flex;flex-wrap:wrap;gap:8px">
+                <input id="sat-referencia" class="campo" placeholder="Referencia del banco (opcional)" style="flex:1;min-width:170px;padding:9px 10px;font-size:12.5px">
+                <label class="btn btn-linea" style="min-height:42px;font-size:12.5px;display:inline-flex;align-items:center;cursor:pointer;padding:0 14px">
+                  Subir comprobante
+                  <input type="file" id="sat-comprobante-archivo" accept="application/pdf,image/jpeg,image/png" style="display:none"></label>
+              </div>
+              <p id="sat-comprobante-msj" class="oculto" style="margin:6px 0 0;font-size:12.5px;font-weight:700"></p>
+            </div>
+          </div>
+        </div>
+        <div style="flex:1;min-width:280px;display:flex;align-items:center;justify-content:center;gap:clamp(22px,4vw,40px);flex-wrap:wrap">
+          <div id="dona" style="width:190px;height:190px;border-radius:50%;display:grid;place-items:center;flex:none;background:#E4E7ED">
+            <div style="width:126px;height:126px;border-radius:50%;background:var(--papel);display:grid;place-items:center;text-align:center">
+              <div>
+                <p style="margin:0;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--gris2);font-weight:600">Total</p>
+                <p id="dona-total" class="serif tnum" style="margin:3px 0 0;font-weight:700;font-size:19px;color:var(--marino)">—</p>
+              </div>
+            </div>
+          </div>
+          <ul id="leyenda" style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:14px;min-width:180px"></ul>
+          <p id="sin-desglose" class="oculto" style="margin:0;font-size:13.5px;color:var(--gris2)">El desglose aparecerá aquí cuando su contador cierre el mes.</p>
+        </div>
+      </div>
+
+      <!-- Los demás pagos del mes (IMSS, ISN...): los pinta el sistema -->
+      <div id="lista-pagos" style="display:flex;flex-direction:column;gap:16px"></div>
+    </section>
+
+    <section id="seccion-frecuentes" style="padding:clamp(40px,6vw,60px) 0 0">
+      <p class="micro" style="margin:0">Descarga rápida</p>
+      <h2 class="serif" style="margin:14px 0 6px;font-weight:700;font-size:clamp(23px,3.4vw,30px);color:var(--marino)">Los documentos que siempre le piden</h2>
+      <p style="margin:0 0 20px;font-size:14px;color:var(--gris)">Para el banco, un proveedor o una licitación: aquí están, del periodo más reciente.</p>
+      <div id="lista-frecuentes" style="display:flex;flex-wrap:wrap;gap:12px"></div>
+    </section>
+
+    <section id="seccion-certificados" class="oculto" style="padding:clamp(48px,7vw,72px) 0 0">
+      <p class="micro" style="margin:0">Bóveda blindada</p>
+      <h2 class="serif" style="margin:14px 0 6px;font-weight:700;font-size:clamp(23px,3.4vw,30px);color:var(--marino)">Sus certificados y firmas</h2>
+      <p style="margin:0 0 8px;font-size:14px;color:var(--gris)">Por su seguridad, cada descarga le pedirá reconfirmar su contraseña. Es el documento más delicado de su empresa y lo cuidamos como tal.</p>
+      <p style="margin:0 0 20px;font-size:14px;color:var(--gris);max-width:560px">Su e.firma, sellos digitales y certificados, siempre disponibles.
+        Por su seguridad, cada descarga le pedirá reconfirmar su contraseña.</p>
+      <div id="lista-certificados" style="display:flex;flex-direction:column;gap:10px;max-width:640px"></div>
+    </section>
+
+    <!-- CITAS -->
+    <section class="seccion">
+      <p class="micro" style="margin:0">Bóveda de documentos clave</p>
+      <h2 class="serif" style="margin:14px 0 30px;font-weight:700;font-size:clamp(23px,3.4vw,30px);color:var(--marino)">Su expediente, siempre a un clic</h2>
+      <div id="boveda" style="display:flex;flex-direction:column;gap:16px;max-width:760px"></div>
+      <p id="boveda-vacia" class="oculto" style="margin:0;font-size:13.5px;color:var(--gris2)">Su contador está integrando su expediente digital. Los documentos aparecerán aquí.</p>
+    </section>
+
+    <!-- CERTIFICADOS -->
+    <!-- PAGOS DEL MES: lo primero que el cliente quiere ver -->
+    <section style="padding:clamp(48px,7vw,72px) 0 0;max-width:560px">
+      <p class="micro" style="margin:0">Agenda de asesorías</p>
+      <h2 class="serif" style="margin:14px 0 6px;font-weight:700;font-size:clamp(23px,3.4vw,30px);color:var(--marino)">¿Necesita una asesoría?</h2>
+      <p style="margin:0 0 24px;font-size:14px;color:var(--gris)">Elija con quién y qué día: le mostramos los horarios realmente libres de esa persona.</p>
+      <div id="mis-citas-lista" style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px"></div>
+      <form id="form-cita" style="display:flex;flex-direction:column;gap:18px">
+        <div>
+          <label for="cita-con" class="etiqueta">¿Con quién?</label>
+          <select id="cita-con" class="campo"></select>
+        </div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap">
+          <div style="flex:1;min-width:200px">
+            <label for="cita-dia" class="etiqueta">Día</label>
+            <input id="cita-dia" type="date" class="campo" required>
+          </div>
+          <div style="flex:1;min-width:160px">
+            <label for="cita-modalidad" class="etiqueta">Modalidad</label>
+            <select id="cita-modalidad" class="campo">
+              <option value="presencial">En la oficina</option>
+              <option value="videollamada">Videollamada</option>
+              <option value="llamada">Por teléfono</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label class="etiqueta">Horarios disponibles</label>
+          <p style="margin:0 0 2px;font-size:11.5px;color:var(--gris2)">Las horas ya tomadas no aparecen: lo que ve, está libre de verdad.</p>
+          <div id="cita-slots" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px">
+            <p style="margin:0;font-size:13px;color:var(--gris2)">Elija con quién y qué día para ver sus horas libres.</p>
+          </div>
+        </div>
+        <div>
+          <label for="cita-motivo" class="etiqueta">Motivo <span style="font-weight:400;color:var(--gris2)">(opcional)</span></label>
+          <textarea id="cita-motivo" rows="2" class="campo" style="resize:vertical;min-height:70px" placeholder="Ej. Dudas sobre mi declaración anual"></textarea>
+        </div>
+        <button type="submit" class="btn btn-azul" style="align-self:flex-start;min-height:48px">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg>
+          Solicitar cita</button>
+      </form>
+      <div id="cita-ok" class="oculto" style="background:#F0F7F2;border:1px solid #BFDCC9;border-radius:14px;padding:22px 24px;display:flex;gap:14px;align-items:flex-start;animation:aparecer .3s ease">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#167A46" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none;margin-top:2px"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
+        <div>
+          <p id="cita-ok-titulo" style="margin:0;font-size:15px;font-weight:700;color:#14532D"></p>
+          <p style="margin:6px 0 0;font-size:14px;line-height:1.6;color:#3F6212">El despacho se pondrá en contacto con usted para confirmarla.</p>
+          <button id="btn-otra-cita" style="margin-top:14px;border:none;background:none;padding:0;color:var(--azul);font-size:13.5px;font-weight:700;cursor:pointer">Agendar otra</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- BUZÓN -->
+    <section style="padding:clamp(48px,7vw,72px) 0 0;max-width:560px">
+      <p class="micro" style="margin:0">Buzón de solicitudes</p>
+      <h2 class="serif" style="margin:14px 0 24px;font-weight:700;font-size:clamp(23px,3.4vw,30px);color:var(--marino)">¿Necesita un trámite?</h2>
+      <form id="form-tramite" style="display:flex;flex-direction:column;gap:18px">
+        <div>
+          <label for="tipo-tramite" class="etiqueta">Trámite</label>
+          <select id="tipo-tramite" class="campo">
+            <option>Constancia de Situación Fiscal actualizada</option>
+            <option>Opinión de cumplimiento 32D</option>
+            <option>Copia certificada de Acta Constitutiva</option>
+            <option>Estado financiero del ejercicio</option>
+            <option>Otro (describir abajo)</option>
+          </select>
+        </div>
+        <div>
+          <label for="detalle-tramite" class="etiqueta">Detalles <span style="font-weight:400;color:var(--gris2)">(opcional)</span></label>
+          <textarea id="detalle-tramite" rows="3" class="campo" style="resize:vertical;min-height:88px"></textarea>
+        </div>
+        <button type="submit" class="btn btn-azul" style="align-self:flex-start;min-height:48px">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+          Solicitar trámite</button>
+      </form>
+      <div id="tramite-ok" class="oculto" style="background:#F0F7F2;border:1px solid #BFDCC9;border-radius:14px;padding:22px 24px;display:flex;gap:14px;align-items:flex-start;animation:aparecer .3s ease">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#167A46" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none;margin-top:2px"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
+        <div>
+          <p id="tramite-ok-titulo" style="margin:0;font-size:15px;font-weight:700;color:#14532D"></p>
+          <p style="margin:6px 0 0;font-size:14px;line-height:1.6;color:#3F6212">Su contador la recibió en este momento. El despacho se pondrá en contacto con usted en cuanto esté lista.</p>
+          <button id="btn-otro-tramite" style="margin-top:14px;border:none;background:none;padding:0;color:var(--azul);font-size:13.5px;font-weight:700;cursor:pointer">Solicitar otro trámite</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- RESUMEN FINANCIERO: solo aparece si el despacho emitió un balance -->
+    <section id="seccion-financiero" class="oculto" style="padding:clamp(40px,6vw,60px) 0 0">
+      <p class="micro" style="margin:0">Su situación financiera</p>
+      <h2 class="serif" style="margin:14px 0 6px;font-weight:700;font-size:clamp(23px,3.4vw,30px);color:var(--marino)">Cómo está su empresa</h2>
+      <p id="fin-periodo" style="margin:0 0 20px;font-size:14px;color:var(--gris)"></p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px">
+        <div class="carta" style="padding:20px">
+          <p class="micro" style="margin:0">Lo que tiene</p>
+          <p id="fin-activo" class="serif tnum" style="margin:8px 0 0;font-weight:700;font-size:clamp(22px,3vw,28px);color:var(--marino)">—</p>
+          <p style="margin:4px 0 0;font-size:12px;color:var(--gris2)">Activo total</p>
+        </div>
+        <div class="carta" style="padding:20px">
+          <p class="micro" style="margin:0">Lo que debe</p>
+          <p id="fin-pasivo" class="serif tnum" style="margin:8px 0 0;font-weight:700;font-size:clamp(22px,3vw,28px);color:var(--marino)">—</p>
+          <p style="margin:4px 0 0;font-size:12px;color:var(--gris2)">Pasivo total</p>
+        </div>
+        <div class="carta" style="padding:20px;border-color:var(--azul-borde)">
+          <p class="micro" style="margin:0">Lo que es suyo</p>
+          <p id="fin-capital" class="serif tnum" style="margin:8px 0 0;font-weight:700;font-size:clamp(22px,3vw,28px);color:var(--azul)">—</p>
+          <p style="margin:4px 0 0;font-size:12px;color:var(--gris2)">Capital contable</p>
+        </div>
+      </div>
+      <p id="fin-leyenda" style="margin:14px 0 0;font-size:12px;color:var(--gris2);line-height:1.6;max-width:640px"></p>
+    </section>
+
+    <!-- ESTADO DE CUENTA: se entrega siempre, deba o no deba -->
+    <section style="padding:clamp(40px,6vw,60px) 0 0">
+      <p class="micro" style="margin:0">Honorarios</p>
+      <h2 class="serif" style="margin:14px 0 6px;font-weight:700;font-size:clamp(23px,3.4vw,30px);color:var(--marino)">Su estado de cuenta</h2>
+      <p style="margin:0 0 18px;font-size:14px;color:var(--gris)">Todos sus honorarios del ejercicio, lo pagado y lo pendiente. Puede descargarlo cuando quiera.</p>
+      <button id="btn-estado-cuenta" class="btn btn-linea" style="min-height:48px;font-size:13.5px">Descargar estado de cuenta</button>
+    </section>
+
+    <!-- SOLICITAR FACTURA: el cliente la pide como la necesita -->
+    <section style="padding:clamp(48px,7vw,72px) 0 0;max-width:620px">
+      <p class="micro" style="margin:0">Facturación</p>
+      <h2 class="serif" style="margin:14px 0 6px;font-weight:700;font-size:clamp(23px,3.4vw,30px);color:var(--marino)">¿Necesita emitir una factura?</h2>
+      <p style="margin:0 0 24px;font-size:14px;color:var(--gris)">Pídala aquí como la necesita y su contador la timbra. En cuanto esté lista, aparece abajo y en su bóveda.</p>
+
+      <form id="form-factura" style="display:flex;flex-direction:column;gap:14px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <label class="etiqueta">RFC del receptor
+            <input id="fx-rfc" class="campo" required placeholder="XAXX010101000" style="margin-top:6px;text-transform:uppercase"></label>
+          <label class="etiqueta">Código postal
+            <input id="fx-cp" class="campo" maxlength="5" placeholder="99000" style="margin-top:6px"></label>
+        </div>
+        <label class="etiqueta">Razón social del receptor
+          <input id="fx-razon" class="campo" required placeholder="Como aparece en su constancia" style="margin-top:6px"></label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <label class="etiqueta">Uso del CFDI
+            <select id="fx-uso" class="campo" style="margin-top:6px">
+              <option value="G03">Gastos en general (G03)</option>
+              <option value="G01">Adquisición de mercancías (G01)</option>
+              <option value="I01">Construcciones (I01)</option>
+              <option value="I04">Equipo de cómputo (I04)</option>
+              <option value="I08">Otra maquinaria y equipo (I08)</option>
+              <option value="D01">Honorarios médicos (D01)</option>
+              <option value="S01">Sin efectos fiscales (S01)</option>
+              <option value="CP01">Pagos (CP01)</option>
+            </select></label>
+          <label class="etiqueta">Régimen del receptor
+            <select id="fx-regimen" class="campo" style="margin-top:6px">
+              <option value="">No lo sé (el despacho lo verifica)</option>
+              <option value="601">General de Ley PM (601)</option>
+              <option value="612">Act. empresariales PF (612)</option>
+              <option value="626">RESICO (626)</option>
+              <option value="605">Sueldos y salarios (605)</option>
+              <option value="616">Sin obligaciones fiscales (616)</option>
+            </select></label>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+          <label class="etiqueta">Forma de pago
+            <select id="fx-forma" class="campo" style="margin-top:6px">
+              <option value="03">Transferencia (03)</option>
+              <option value="01">Efectivo (01)</option>
+              <option value="04">Tarjeta de crédito (04)</option>
+              <option value="28">Tarjeta de débito (28)</option>
+              <option value="02">Cheque (02)</option>
+              <option value="99">Por definir (99)</option>
+            </select></label>
+          <label class="etiqueta">Método
+            <select id="fx-metodo" class="campo" style="margin-top:6px">
+              <option value="PUE">Pago en una exhibición (PUE)</option>
+              <option value="PPD">Pago en parcialidades (PPD)</option>
+            </select></label>
+          <label class="etiqueta">Monto (con IVA)
+            <input id="fx-monto" class="campo" type="number" min="0" step="0.01" placeholder="Opcional" style="margin-top:6px"></label>
+        </div>
+        <label class="etiqueta">Concepto
+          <input id="fx-concepto" class="campo" required placeholder="Ej. Servicios de fumigación, marzo 2026" style="margin-top:6px"></label>
+        <label class="etiqueta">Notas para su contador (opcional)
+          <textarea id="fx-notas" class="campo" rows="2" style="margin-top:6px;resize:vertical"></textarea></label>
+        <p id="fx-msj" class="oculto" style="margin:0;font-size:13px;font-weight:700"></p>
+        <button type="submit" class="btn btn-azul" style="min-height:52px;font-size:14.5px">Solicitar factura</button>
+      </form>
+
+      <div id="factura-ok" class="oculto" style="background:#F0F7F2;border:1px solid #BFDCC9;border-radius:14px;padding:22px 24px;animation:aparecer .3s ease">
+        <p id="factura-ok-titulo" style="margin:0;font-size:15px;font-weight:800;color:#167A46"></p>
+        <p style="margin:6px 0 0;font-size:14px;line-height:1.6;color:#3F6212">Su contador la recibió en este momento. El despacho se pondrá en contacto con usted si algún dato necesita aclararse.</p>
+        <button id="btn-otra-factura" style="margin-top:14px;border:none;background:none;padding:0;color:var(--azul);font-size:13.5px;font-weight:700;cursor:pointer">Solicitar otra factura</button>
+      </div>
+
+      <div id="mis-facturas-lista" style="display:flex;flex-direction:column;gap:10px;margin-top:26px"></div>
+    </section>
+  </main>
+
+  <footer style="margin-top:auto;border-top:1px solid var(--borde);background:var(--tarjeta);padding:26px clamp(16px,4vw,32px)">
+    <div style="max-width:1020px;margin:0 auto;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <img src="/static/marca/monograma.png" alt="" style="height:26px;width:auto">
+      <p style="margin:0;font-size:12px;line-height:1.55;color:var(--gris2)">Pacheco &amp; Aparicio · Consultoría Jurídica Fiscal · Sus documentos viajan cifrados y cada descarga queda registrada.</p>
+    </div>
+  </footer>
+</section>
+
+<script src="/static/clientes/app.js?v=34"></script>
+</body>
+</html>

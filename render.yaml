@@ -1,0 +1,48 @@
+# ============================================================
+# Blueprint de Render.com — UN solo servicio ($7/mes).
+# Los recordatorios y tareas diarias corren DENTRO de la app
+# (services/programador.py), sin worker ni Redis aparte.
+# ============================================================
+services:
+  - type: web
+    name: pya-api
+    runtime: python
+    # ---------------------------------------------------------------
+    # PLAN GRATIS para afinar y probar (se duerme tras 15 min sin uso y
+    # tarda ~50s en despertar; sin costo alguno).
+    # CUANDO SALGA A PRODUCCIÓN: cambia free -> starter ($7/mes) para que
+    # esté siempre despierto. Es un solo cambio, no se pierde nada.
+    # ---------------------------------------------------------------
+    plan: free
+    healthCheckPath: /salud
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: SECRET_KEY
+        sync: false
+      - key: MASTER_ENCRYPTION_KEY
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: STORAGE_BACKEND
+        value: s3
+      - key: S3_BUCKET
+        value: documentos
+      - key: S3_ENDPOINT_URL
+        sync: false
+      - key: S3_REGION
+        sync: false
+      - key: S3_ACCESS_KEY
+        sync: false
+      - key: S3_SECRET_KEY
+        sync: false
+      - key: VOICE_WEBHOOK_API_KEY
+        sync: false
+      - key: ALLOWED_ORIGINS
+        value: https://www.pafirma.com,https://pafirma.com,https://pya-api.onrender.com
+      - key: ALLOWED_HOSTS
+        value: www.pafirma.com,pafirma.com,pya-api.onrender.com
+      - key: BASE_URL
+        value: https://www.pafirma.com

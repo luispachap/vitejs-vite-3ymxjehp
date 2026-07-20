@@ -1,0 +1,21 @@
+fastapi==0.115.*
+uvicorn[standard]==0.30.*
+sqlalchemy==2.0.*
+passlib[bcrypt]==1.7.4
+bcrypt==4.0.1
+python-jose[cryptography]==3.3.*
+python-multipart==0.0.*
+pydantic==2.*
+reportlab==4.*          # estado de cuenta PDF (Zona Express)
+qrcode[pil]==7.*        # QR de enrolamiento 2FA en pantalla
+cryptography==43.*      # cifrado en reposo + a nivel de campo (Fernet/AES)
+pyotp==2.9.*            # 2FA TOTP para personal interno
+apscheduler==3.*        # rutinas diarias DENTRO del web (sin Redis ni worker)
+celery==5.4.*           # librería requerida por services/tareas.py (sin broker activo)
+# redis==5.*              # broker de Celery
+boto3==1.34.*           # almacenamiento S3 privado + URLs firmadas
+# Producción adicional:
+psycopg2-binary==2.9.*   # PostgreSQL (Supabase)
+# twilio                # WhatsApp Business API
+# alembic               # migraciones
+openpyxl==3.1.5

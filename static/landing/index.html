@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pacheco &amp; Aparicio · Consultoría Jurídica Fiscal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&family=Public+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+:root{--azul:#0A5AA1;--azul-h:#08477F;--marino:#0A1C33;--papel:#F6F6F3;--borde:#E4E7ED;
+--tinta:#111826;--gris:#5C6879;--gris2:#8A93A6}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--papel);color:var(--tinta);font-family:'Public Sans',system-ui,sans-serif;
+-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+a{color:var(--azul);text-decoration:none}a:hover{color:var(--azul-h)}
+::selection{background:var(--azul);color:#fff}
+:focus-visible{outline:2px solid var(--azul);outline-offset:2px}
+.serif{font-family:'Libre Caslon Text',Georgia,serif}
+.micro{font-size:11px;letter-spacing:.3em;text-transform:uppercase;font-weight:700;color:var(--azul)}
+.contenedor{max-width:1120px;margin:0 auto;padding:0 clamp(16px,4vw,32px)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;font-weight:600;
+font-size:14.5px;border-radius:9px;min-height:46px;padding:0 20px;transition:background .15s,border-color .15s,color .15s}
+.btn-azul{background:var(--azul);color:#fff}.btn-azul:hover{background:var(--azul-h);color:#fff}
+.btn-marino{border:1.5px solid var(--marino);color:var(--marino);background:transparent}
+.btn-marino:hover{background:var(--marino);color:#fff}
+header.cab{position:sticky;top:0;z-index:40;background:rgba(255,255,255,.94);backdrop-filter:blur(10px);
+border-bottom:1px solid var(--borde)}
+.cab-fila{min-height:66px;padding-top:9px;padding-bottom:9px;display:flex;flex-wrap:wrap;
+align-items:center;justify-content:space-between;gap:8px 16px}
+.heroe{background:radial-gradient(ellipse 90% 70% at 18% -10%,rgba(10,90,161,.42),transparent 60%),
+radial-gradient(ellipse 70% 55% at 100% 110%,rgba(10,90,161,.22),transparent 55%),var(--marino);
+color:#EEF3FA;padding:clamp(64px,9vw,116px) clamp(16px,4vw,32px) 150px;text-align:center}
+.tarjetas{max-width:880px;margin:-96px auto 0;position:relative;z-index:2;display:grid;
+grid-template-columns:repeat(auto-fit,minmax(272px,1fr));gap:18px;padding:0 clamp(16px,4vw,32px)}
+.tarjeta{background:#fff;border:1px solid var(--borde);border-radius:16px;padding:30px 28px;
+box-shadow:0 24px 48px -18px rgba(10,28,51,.28);display:flex;flex-direction:column;gap:14px}
+.icono-circulo{width:46px;height:46px;border-radius:50%;display:grid;place-items:center}
+.practica{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:clamp(24px,4vw,44px)}
+.practica article{border-top:2px solid var(--marino);padding-top:22px}
+</style>
+</head>
+<body>
+
+<header class="cab">
+  <div class="contenedor cab-fila">
+    <a href="#inicio" style="display:flex;align-items:center;gap:12px;color:var(--tinta)">
+      <img src="/static/marca/monograma.png" alt="Monograma PA" style="height:38px;width:auto;display:block">
+      <span style="display:flex;flex-direction:column;line-height:1.15">
+        <span class="serif" style="font-weight:700;font-size:15.5px">Pacheco &amp; Aparicio</span>
+        <span style="font-size:9.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--gris);font-weight:600">Consultoría Jurídica Fiscal</span>
+      </span>
+    </a>
+    <nav style="display:flex;align-items:center;gap:clamp(10px,2vw,22px)">
+      <a href="/equipo" style="font-size:13.5px;font-weight:600;color:#43506B;padding:10px 2px">Equipo</a>
+      <a href="/clientes" class="btn btn-azul" style="min-height:42px;font-size:13.5px">Portal de clientes</a>
+    </nav>
+  </div>
+</header>
+
+<section id="inicio" class="heroe">
+  <div style="max-width:780px;margin:0 auto;display:flex;flex-direction:column;align-items:center">
+    <div style="position:relative;width:104px;height:104px;margin-bottom:34px">
+      <div style="position:absolute;inset:0;border-radius:50%;border:1px solid rgba(159,194,228,.4)"></div>
+      <div style="position:absolute;inset:7px;border-radius:50%;border:1px solid rgba(159,194,228,.22)"></div>
+      <img src="/static/marca/monograma.png" alt="" style="position:absolute;inset:16px;width:72px;height:72px;object-fit:contain">
+    </div>
+    <h1 class="serif" style="margin:0;font-weight:700;font-size:clamp(36px,6.4vw,62px);line-height:1.08;color:#fff">Pacheco &amp; Aparicio</h1>
+    <p style="margin:18px 0 0;font-size:clamp(11px,1.6vw,13.5px);letter-spacing:.42em;text-transform:uppercase;color:#9FC2E4;font-weight:600">Consultoría · Jurídica · Fiscal</p>
+    <p style="margin:26px 0 0;max-width:520px;font-size:clamp(15px,2vw,17px);line-height:1.65;color:rgba(238,243,250,.82)">
+      Contabilidad, impuestos y defensa fiscal con criterio jurídico, bajo la firma del
+      C.P. y Lic. Rodolfo Pacheco Ortega. Atención personal; tecnología solo donde suma.</p>
+  </div>
+</section>
+
+<section class="tarjetas">
+  <div class="tarjeta">
+    <div class="icono-circulo" style="background:#EAF2F9;color:var(--azul)">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    </div>
+    <div>
+      <h2 class="serif" style="margin:0;font-size:21px;font-weight:700;color:var(--marino)">Portal de clientes</h2>
+      <p style="margin:8px 0 0;font-size:14px;line-height:1.6;color:var(--gris)">Su semáforo fiscal, la línea de captura del mes y su expediente completo. Exclusivo para empresas del despacho.</p>
+    </div>
+    <a href="/clientes" class="btn btn-azul" style="margin-top:6px">Entrar a mi portal
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a>
+  </div>
+  <div class="tarjeta">
+    <div class="icono-circulo" style="background:#F1F2EE;color:var(--marino)">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    </div>
+    <div>
+      <h2 class="serif" style="margin:0;font-size:21px;font-weight:700;color:var(--marino)">Acceso del equipo</h2>
+      <p style="margin:8px 0 0;font-size:14px;line-height:1.6;color:var(--gris)">Panel interno del despacho: dirección, contaduría y cobranza. Requiere código de autenticador (2FA).</p>
+    </div>
+    <a href="/equipo" class="btn btn-marino" style="margin-top:6px">Entrar al panel
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a>
+  </div>
+</section>
+
+<section style="padding:clamp(64px,9vw,104px) clamp(16px,4vw,32px) clamp(56px,7vw,88px)">
+  <div class="contenedor" style="padding:0">
+    <p class="micro" style="margin:0">Áreas de práctica</p>
+    <h2 class="serif" style="margin:14px 0 0;font-weight:700;font-size:clamp(26px,3.6vw,36px);color:var(--marino);max-width:560px;line-height:1.2">Un solo criterio para lo contable y lo jurídico</h2>
+    <div class="practica" style="margin-top:clamp(36px,5vw,56px)">
+      <article>
+        <p class="serif" style="margin:0;font-style:italic;font-size:15px;color:var(--azul)">01</p>
+        <h3 class="serif" style="margin:10px 0 0;font-size:20px;font-weight:700;color:var(--marino)">Contabilidad e impuestos</h3>
+        <p style="margin:10px 0 0;font-size:14.5px;line-height:1.65;color:var(--gris)">Cierre mensual, declaraciones y línea de captura del SAT entregada a tiempo, cada mes.</p>
+      </article>
+      <article>
+        <p class="serif" style="margin:0;font-style:italic;font-size:15px;color:var(--azul)">02</p>
+        <h3 class="serif" style="margin:10px 0 0;font-size:20px;font-weight:700;color:var(--marino)">Consultoría jurídica fiscal</h3>
+        <p style="margin:10px 0 0;font-size:14.5px;line-height:1.65;color:var(--gris)">Requerimientos, defensa y planeación ante la autoridad, con respaldo legal de origen.</p>
+      </article>
+      <article>
+        <p class="serif" style="margin:0;font-style:italic;font-size:15px;color:var(--azul)">03</p>
+        <h3 class="serif" style="margin:10px 0 0;font-size:20px;font-weight:700;color:var(--marino)">Cumplimiento y trámites</h3>
+        <p style="margin:10px 0 0;font-size:14.5px;line-height:1.65;color:var(--gris)">Opinión 32D, constancias y expediente corporativo al día, disponibles en su portal.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section style="background:var(--marino);color:#C9D8EA;padding:22px clamp(16px,4vw,32px)">
+  <div class="contenedor" style="display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;text-align:center;padding:0">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#9FC2E4" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    <p style="margin:0;font-size:13.5px">Sus documentos viajan cifrados y cada consulta queda registrada por su seguridad.</p>
+  </div>
+</section>
+
+<section style="background:#fff;border-top:1px solid var(--borde);padding:clamp(64px,9vw,104px) clamp(16px,4vw,32px)">
+  <div class="contenedor" style="display:flex;flex-wrap:wrap;gap:clamp(36px,6vw,72px);align-items:center;padding:0">
+    <div style="flex:1.2;min-width:290px">
+      <p class="micro" style="margin:0">El titular</p>
+      <h2 class="serif" style="margin:14px 0 0;font-weight:700;font-size:clamp(26px,3.6vw,36px);line-height:1.2;color:var(--marino)">C.P. y Lic. Rodolfo Pacheco Ortega</h2>
+      <p style="margin:18px 0 0;font-size:15.5px;line-height:1.7;color:#43506B;max-width:520px">
+        Contador público y licenciado en derecho: la doble formación que da nombre a la firma.
+        Cada expediente se revisa con rigor contable y se defiende con argumento jurídico.</p>
+      <p class="serif" style="margin:22px 0 0;font-style:italic;font-size:17px;color:var(--azul)">— Su asunto se atiende en persona, no en una fila.</p>
+    </div>
+    <div style="flex:1;min-width:270px;display:flex;justify-content:center">
+      <div style="background:#fff;border:1px solid var(--borde);border-radius:14px;padding:clamp(20px,3.5vw,36px);box-shadow:0 18px 40px -22px rgba(10,28,51,.25);max-width:430px;width:100%">
+        <img src="/static/marca/logotipo.png" alt="Pacheco &amp; Aparicio — Consultoría Jurídica Fiscal" style="width:100%;height:auto;display:block">
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="contacto" style="padding:clamp(64px,9vw,104px) clamp(16px,4vw,32px);text-align:center">
+  <div style="max-width:640px;margin:0 auto;display:flex;flex-direction:column;align-items:center">
+    <p class="micro" style="margin:0">Contacto</p>
+    <h2 class="serif" style="margin:14px 0 0;font-weight:700;font-size:clamp(26px,3.6vw,36px);color:var(--marino)">Hablemos de su empresa</h2>
+    <p style="margin:16px 0 0;font-size:15px;line-height:1.65;color:var(--gris);max-width:440px">Escríbanos por WhatsApp y su asunto queda en manos del equipo el mismo día.</p>
+    <div style="margin-top:30px;display:flex;flex-wrap:wrap;gap:14px;justify-content:center">
+      <a href="https://wa.me/528100000000" class="btn btn-azul" style="min-height:48px;font-size:15px">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>
+        WhatsApp del despacho</a>
+      <a href="mailto:despacho@pya.mx" class="btn" style="border:1.5px solid #D4D9E2;color:var(--marino);background:#fff;min-height:48px;font-size:15px">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+        despacho@pya.mx</a>
+    </div>
+    <p style="margin:26px 0 0;font-size:13px;color:var(--gris2)">Lunes a viernes · 9:00 a 18:00 h · México</p>
+  </div>
+</section>
+
+<footer style="background:#fff;border-top:1px solid var(--borde);padding:36px clamp(16px,4vw,32px)">
+  <div class="contenedor" style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:20px;padding:0">
+    <div style="display:flex;align-items:center;gap:12px">
+      <img src="/static/marca/monograma.png" alt="" style="height:30px;width:auto">
+      <p style="margin:0;font-size:12.5px;color:var(--gris);line-height:1.5">© 2026 Pacheco &amp; Aparicio · Consultoría Jurídica Fiscal<br>C.P. y Lic. Rodolfo Pacheco Ortega</p>
+    </div>
+    <nav style="display:flex;gap:22px;flex-wrap:wrap">
+      <a href="/clientes" style="font-size:13px;font-weight:600;color:#43506B">Portal de clientes</a>
+      <a href="/equipo" style="font-size:13px;font-weight:600;color:#43506B">Acceso del equipo</a>
+    </nav>
+  </div>
+</footer>
+
+</body>
+</html>

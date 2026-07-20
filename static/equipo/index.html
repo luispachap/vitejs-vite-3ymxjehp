@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pacheco &amp; Aparicio · Equipo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&family=Public+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Azul institucional (el de la landing) como color rector */
+  --azul:#0A5AA1;--azul-h:#08477F;--azul-suave:#EEF4FB;--azul-borde:#CFE0F2;
+  --marino:#0A1C33;--papel:#F6F6F3;--tarjeta:#FFFFFF;
+  --borde:#E4E7ED;--borde-suave:#EEF0F4;
+  --tinta:#111826;--gris:#5C6879;--gris2:#8A93A6;
+  --rojo:#B4362A;--rojo-suave:#FDF1EF;--rojo-borde:#F2CFC8;
+  --ambar:#96690A;--ambar-suave:#FDF6E7;
+  --verde:#167A46;--verde-suave:#F0F7F2;
+  --sombra:0 1px 2px rgba(10,28,51,.04),0 8px 24px rgba(10,28,51,.06);
+}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--papel);color:var(--tinta);font-family:'Public Sans',system-ui,sans-serif;
+-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+a{color:var(--azul);text-decoration:none}a:hover{color:var(--azul-h)}
+::selection{background:var(--azul);color:#fff}
+:focus-visible{outline:2px solid var(--azul);outline-offset:2px}
+input,select,textarea,button{font-family:'Public Sans',system-ui,sans-serif}
+.serif{font-family:'Libre Caslon Text',Georgia,serif}
+.tnum{font-variant-numeric:tabular-nums}
+.micro{font-size:10.5px;letter-spacing:.24em;text-transform:uppercase;font-weight:700;color:var(--gris)}
+/* Píldora de estado: etiqueta corta junto a un nombre (VIP, AUTOFIRMADO...) */
+.pildora{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.06em;
+padding:2.5px 8px;border-radius:99px;background:var(--azul-suave);color:var(--azul);
+text-transform:uppercase;vertical-align:middle}
+.pildora.ambar{background:var(--ambar-suave);color:var(--ambar)}
+.pildora.verde{background:var(--verde-suave);color:var(--verde)}
+.pildora.roja{background:var(--rojo-suave);color:var(--rojo)}
+.oculto{display:none!important}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;font-weight:600;
+font-size:14.5px;border-radius:9px;min-height:50px;padding:0 20px;border:none;cursor:pointer;
+transition:background .15s,border-color .15s,color .15s,filter .15s}
+.btn-azul{background:var(--azul);color:#fff}.btn-azul:hover{background:var(--azul-h)}
+.campo{width:100%;border:1px solid #D4D9E2;border-radius:9px;padding:13px 14px;font-size:15px;
+background:var(--tarjeta);color:var(--tinta);outline:none;transition:border-color .15s}
+.campo:focus{border-color:var(--azul);box-shadow:0 0 0 3px rgba(10,90,161,.14)}
+.etiqueta{display:block;font-size:13.5px;font-weight:600;margin-bottom:7px}
+.carta{background:var(--tarjeta);border:1px solid var(--borde);border-radius:14px}
+.chip{background:var(--tarjeta);min-height:38px;padding:0 13px;border-radius:8px;font-size:12.5px;font-weight:600;cursor:pointer;
+border:1px solid var(--borde);background:var(--tarjeta);color:var(--gris)}
+.chip.activo{border-color:var(--azul);background:var(--azul);color:#fff}
+@keyframes aparecer{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes parpadeo{0%,100%{background:#FCEAE6}50%{background:#F5CFC7}}
+.rojo-parpadeante{animation:parpadeo 1.8s ease-in-out infinite}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}.rojo-parpadeante{background:#F5CFC7}}
+.login{min-height:100vh;display:flex;flex-wrap:wrap-reverse;align-items:stretch}
+.login-marca{flex:1.1;min-width:300px;background:radial-gradient(ellipse 90% 70% at 15% -10%,rgba(10,90,161,.45),transparent 60%),var(--marino);
+color:#EEF3FA;display:flex;flex-direction:column;justify-content:space-between;gap:36px;padding:clamp(28px,5vw,60px)}
+.login-form{flex:1;min-width:300px;display:grid;place-items:center;padding:clamp(28px,5vw,60px) clamp(20px,4vw,48px)}
+.cab{position:sticky;top:0;z-index:40;background:rgba(255,255,255,.94);backdrop-filter:blur(10px);border-bottom:1px solid var(--borde)}
+.cab-fila{max-width:1160px;margin:0 auto;padding:10px clamp(16px,4vw,32px);display:flex;
+flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 12px}
+main.app{width:100%;max-width:1160px;margin:0 auto;padding:clamp(24px,4vw,40px) clamp(16px,4vw,32px) 90px}
+.h1{margin:0 0 26px;font-family:'Libre Caslon Text',Georgia,serif;font-weight:700;
+font-size:clamp(26px,4vw,34px);color:var(--marino)}
+.kpi{background:var(--tarjeta);border:1px solid var(--borde);border-radius:14px;padding:20px 22px}
+.fila{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;padding:14px 18px;border-bottom:1px solid #EEF0F4}
+.fila:last-child{border-bottom:none}
+/* Kiosco de Pao */
+.pao-gigante{display:flex;align-items:center;justify-content:space-between;gap:14px;min-height:104px;
+padding:0 26px;border:none;border-radius:16px;color:#fff;font-size:clamp(22px,3.4vw,26px);font-weight:800;
+letter-spacing:.02em;cursor:pointer;width:100%;transition:filter .15s}
+.pao-gigante:hover{filter:brightness(1.07)}
+.pao-contador{background:rgba(255,255,255,.22);border-radius:12px;min-width:72px;min-height:58px;
+display:grid;place-items:center;font-size:30px;font-variant-numeric:tabular-nums}
+.pao-accion{display:inline-flex;align-items:center;justify-content:center;gap:11px;border:none;
+border-radius:12px;color:#fff;font-weight:800;cursor:pointer;transition:filter .15s}
+.pao-accion:hover{filter:brightness(1.08)}
+.switch{width:72px;height:38px;border-radius:99px;border:none;cursor:pointer;position:relative;
+transition:background .2s;flex:none}
+.switch::after{content:'';position:absolute;top:4px;left:4px;width:30px;height:30px;border-radius:99px;
+background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:left .2s}
+.switch[aria-checked="true"]{background:var(--verde)}
+.switch[aria-checked="true"]::after{left:38px}
+.switch[aria-checked="false"]{background:#A9B0C2}
+.zona-drop{display:grid;place-items:center;text-align:center;border:2px dashed #C7CEDA;border-radius:12px;
+padding:34px 16px;cursor:pointer;transition:border-color .15s,background .15s}
+.zona-drop:hover,.zona-drop.encima{border-color:var(--azul);background:#F4F8FC}
+</style>
+</head>
+<body>
+
+<!-- ============ LOGIN ============ -->
+<section id="vista-login" class="login">
+  <div class="login-marca">
+    <a href="/" style="display:inline-flex;align-items:center;gap:9px;color:#9FC2E4;font-size:13px;font-weight:600">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+      Volver al sitio</a>
+    <div>
+      <img src="/static/marca/monograma.png" alt="Monograma PA" style="height:64px;width:auto;display:block;margin-bottom:26px">
+      <p class="serif" style="margin:0;font-weight:700;font-size:clamp(28px,3.6vw,40px);line-height:1.15;color:#fff">Pacheco &amp; Aparicio</p>
+      <p style="margin:12px 0 0;font-size:11.5px;letter-spacing:.34em;text-transform:uppercase;color:#9FC2E4;font-weight:600">Panel interno del despacho</p>
+      <p style="margin:24px 0 0;max-width:400px;font-size:14.5px;line-height:1.7;color:rgba(238,243,250,.78)">Dirección, contaduría y cobranza en un solo panel. Acceso protegido con segundo factor.</p>
+    </div>
+    <p style="margin:0;font-size:13px;color:rgba(238,243,250,.55)">C.P. y Lic. Rodolfo Pacheco Ortega</p>
+  </div>
+  <div class="login-form">
+    <form id="form-login" style="width:100%;max-width:380px">
+      <h1 class="serif" style="margin:0;font-weight:700;font-size:26px;color:var(--marino)">Acceso del equipo</h1>
+      <p style="margin:8px 0 26px;font-size:14px;color:var(--gris)">Panel interno del despacho.</p>
+      <label for="email" class="etiqueta">Correo</label>
+      <input id="email" type="email" required autocomplete="username" class="campo">
+      <label for="password" class="etiqueta" style="margin-top:18px">Contraseña</label>
+      <input id="password" type="password" required autocomplete="current-password" class="campo">
+      <label for="codigo-totp" class="etiqueta" style="margin-top:18px">Código 2FA · Google Authenticator</label>
+      <input id="codigo-totp" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="123 456"
+             class="campo" style="letter-spacing:.5em;text-align:center;font-size:17px">
+      <p style="margin:7px 0 0;font-size:12px;color:var(--gris2)">Los 6 dígitos de su app autenticadora (si su cuenta ya tiene 2FA).</p>
+      <button type="button" id="abrir-2fa" style="border:none;background:none;padding:0;text-align:left;color:var(--azul);font-size:13px;font-weight:700;cursor:pointer">Primera vez aquí: configurar mi código 2FA</button>
+      <div id="caja-2fa" class="oculto" style="border:1px solid var(--borde);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px;background:#FAFBFD">
+        <p style="margin:0;font-size:13px;line-height:1.55;color:var(--gris)">Escriba arriba su correo y contraseña, toque el botón y escanee el código con <strong>Google Authenticator</strong>.</p>
+        <button type="button" id="btn-generar-qr" class="btn btn-azul" style="min-height:42px;font-size:13.5px">Generar mi código QR</button>
+        <div id="zona-qr" class="oculto" style="text-align:center">
+          <img id="img-qr" alt="Código QR para su app autenticadora" style="width:180px;height:180px;border:1px solid var(--borde);border-radius:10px">
+          <p style="margin:10px 0 8px;font-size:12.5px;color:var(--gris)">Ya que lo escaneó, escriba los 6 dígitos que le muestra la app:</p>
+          <div style="display:flex;gap:8px">
+            <input id="verificar-totp" inputmode="numeric" maxlength="6" class="campo" placeholder="123456" style="text-align:center;letter-spacing:.4em">
+            <button type="button" id="btn-verificar-totp" class="btn btn-azul" style="min-height:42px">Activar</button>
+          </div>
+        </div>
+        <p id="msj-2fa" class="oculto" style="margin:0;font-size:12.5px;font-weight:700"></p>
+      </div>
+      <p id="login-error" class="oculto" style="margin:16px 0 0;font-size:13px;font-weight:600;color:var(--rojo)"></p>
+      <button type="submit" class="btn btn-azul" style="margin-top:22px;width:100%;min-height:50px;font-size:15.5px">Entrar al panel</button>
+    </form>
+  </div>
+</section>
+
+<!-- ============ APP ============ -->
+<section id="vista-app" class="oculto" style="min-height:100vh;display:flex;flex-direction:column">
+  <header class="cab">
+    <div class="cab-fila">
+      <div style="display:flex;align-items:center;gap:12px;min-width:0">
+        <img src="/static/marca/monograma.png" alt="" style="height:36px;width:auto">
+        <div style="line-height:1.2">
+          <p class="serif" style="margin:0;font-weight:700;font-size:15px;color:var(--marino)">Pacheco &amp; Aparicio</p>
+          <p id="cab-rol" style="margin:0;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--gris);font-weight:600"></p>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <span id="cab-nombre" style="font-size:13px;color:var(--gris)"></span>
+        <button id="btn-salir" style="display:inline-flex;align-items:center;gap:8px;min-height:40px;padding:0 14px;border:1px solid var(--borde);background:var(--tarjeta);color:var(--gris);font-size:13px;font-weight:600;border-radius:8px;cursor:pointer">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>
+          Salir</button>
+      </div>
+    </div>
+  </header>
+  <main id="contenido" class="app"></main>
+</section>
+
+<script src="/static/equipo/app.js?v=34"></script>
+</body>
+</html>
